@@ -1,0 +1,15 @@
+---
+server:
+  port: 8080
+
+s3:
+  accessKey:
+  secretKey:
+  bucketName:
+  endpoint: s3.amazonaws.com
+  outputFile: model/lreg-direct.zip
+
+
+spring:
+  application:
+    name: analyze-sentiment

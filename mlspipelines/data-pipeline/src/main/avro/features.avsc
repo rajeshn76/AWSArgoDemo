@@ -1,0 +1,11 @@
+{
+    "namespace":"net.mls.pipeline.data.avro",
+    "type":"record",
+    "name":"DataModel",
+    "fields":[
+        {"name" : "text", "type" : ["null","string"], "default" : null},
+        {"name" : "afterRelease", "type" : ["null","boolean"], "default" : null},
+        {"name" : "version", "type" : ["null","string"], "default" : null},
+        {"name" : "label", "type" : ["null","int"], "default" : null}
+        ]
+}

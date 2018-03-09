@@ -1,0 +1,12 @@
+{
+    "namespace":"net.mls.pipeline.data.avro",
+    "type":"record",
+    "name":"IOSReview",
+    "fields":[
+        {"name" : "date", "type" : ["null","string"], "default" : null},
+        {"name" : "body", "type" : ["null","string"], "default" : null},
+        {"name" : "rating", "type" : ["null","string"], "default" : null},
+        {"name" : "version", "type" : ["null","string"], "default" : null}
+
+        ]
+}
