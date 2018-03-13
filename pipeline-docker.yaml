@@ -1,0 +1,173 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mls-pipelines-direct-
+spec:
+  entrypoint: feature-training
+  templates:
+  - name: feature-training
+    steps:
+    - - name: feature-engineering
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/feature-pipeline-direct.jar"
+          - name: input-path
+            value: "chase_ios_app_reviews-partial.csv"  
+          - name: output-path
+            value: "TestDataModel-direct.csv"
+    - - name: model-training
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/learning-pipeline-direct.jar"
+          - name: input-path
+            value: "TestDataModel-direct.csv"
+          - name: output-path
+            value: "model/lreg-flink.zip"
+    - - name: build-and-push
+        template: build-push
+        arguments:
+          parameters:
+          - name: app-jar
+            value: "jars/model-serving.jar"
+          - name: model
+            value: "model/lreg-direct.zip"
+          - name: docker-repo
+            value: "pqchat"
+          - name: docker-image
+            value: "model-serving"
+          - name: docker-version
+            value: "v2"
+    - - name: model-serving
+        template: serving-template
+        arguments:
+          parameters:
+          - name: wf-name
+            value: "model-endpoint2"
+          - name: docker-repo
+            value: "pqchat"
+          - name: docker-image
+            value: "model-serving"
+          - name: docker-version
+            value: "v2"
+  - name: beam-template
+    inputs:
+      parameters:
+      - name: jar
+      - name: input-path
+      - name: output-path
+      artifacts:
+      - name: my-art
+        path: /pipeline-jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: "{{inputs.parameters.jar}}"
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+    container:
+      image: java:8
+      command: [bash, -c]
+      args: ["java -jar /pipeline-jar --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} "]
+    resources:
+      mem_mib: 4096
+      cpu_cores: 0.3
+  - name: build-push
+    inputs:
+      parameters:
+      - name: app-jar
+      - name: model
+      - name: docker-repo
+      - name: docker-image
+      - name: docker-version
+      artifacts:
+      - name: docker-files
+        path: /docker-files
+        git:
+          repo: https://github.com/venci6/demos.git
+          revision: master
+      - name: jar-artifact
+        path: /model-serving.jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: "{{inputs.parameters.app-jar}}"
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+    container:
+      image: docker:17.10
+      command: [sh, -c]
+      args: ["cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}"]
+      env:
+      - name: DOCKER_HOST               #the docker daemon can be access on the standard port on localhost
+        value: 127.0.0.1
+      - name: DOCKER_USERNAME  # name of env var
+        valueFrom:
+          secretKeyRef:
+            name: docker-credentials     # name of an existing k8s secret
+            key: username     # 'key' subcomponent of the secret
+      - name: DOCKER_PASSWORD  # name of env var
+        valueFrom:
+          secretKeyRef:
+            name: docker-credentials     # name of an existing k8s secret
+            key: password     # 'key' subcomponent of the secret
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind          #Docker already provides an image for running a Docker daemon
+      securityContext:
+        privileged: true                #the Docker daemon can only run in a privileged container
+      mirrorVolumeMounts: true
+  - name: serving-template
+    inputs:
+      parameters:
+      - name: wf-name
+      - name: docker-repo
+      - name: docker-image
+      - name: docker-version
+    resource:
+      action: create
+      manifest: |
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: {{inputs.parameters.wf-name}}
+          labels:
+            app: {{inputs.parameters.wf-name}}
+        spec:
+          type: LoadBalancer
+          selector:
+            app: {{inputs.parameters.wf-name}}
+          ports:
+          - protocol: TCP
+            port: 8080
+            name: http
+
+        ---
+        apiVersion: v1
+        kind: ReplicationController
+        metadata:
+          name: {{inputs.parameters.wf-name}}
+        spec:
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: {{inputs.parameters.wf-name}}
+            spec:
+              containers:
+              - name: {{inputs.parameters.wf-name}}
+                image: {{inputs.parameters.docker-repo}}/{{inputs.parameters.docker-image}}:{{inputs.parameters.docker-version}}
+                ports:
+                - containerPort: 8080
