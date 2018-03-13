@@ -1,0 +1,57 @@
+# $ kubectl create secret generic my-s3-credentials --from-literal=accessKey=<YOUR-ACCESS-KEY> --from-literal=secretKey=<YOUR-SECRET-KEY>
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mls-pipelines-flink-
+spec:
+  entrypoint: feature-training
+  templates:
+  - name: feature-training
+    steps:
+    - - name: feature-engineering
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/feature-pipeline-flink.jar"
+          - name: input-path
+            value: "chase_ios_app_reviews-partial.csv"  
+          - name: output-path
+            value: "TestDataModel-flink.csv"
+    - - name: model-training
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/learning-pipeline-flink.jar"
+          - name: input-path
+            value: "TestDataModel-flink.csv"
+          - name: output-path
+            value: "model/lreg-flink.zip"
+  - name: beam-template
+    inputs:
+      parameters:
+      - name: jar
+      - name: input-path
+      - name: output-path
+      artifacts:
+      - name: my-art
+        path: /pipeline-jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: "{{inputs.parameters.jar}}"
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+    container:
+      image: flink:1.4.0
+      command: [bash, -c]
+      args: ["bin/start-local.sh && flink run /pipeline-jar --runner=FlinkRunner --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} "]
+    resources:
+      mem_mib: 4096
+      cpu_cores: 0.3
+      
