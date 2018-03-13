@@ -1,0 +1,57 @@
+# $ kubectl create secret generic my-s3-credentials --from-literal=accessKey=<YOUR-ACCESS-KEY> --from-literal=secretKey=<YOUR-SECRET-KEY>
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mls-pipelines-spark-manual-
+spec:
+  entrypoint: feature-training
+  templates:
+  - name: feature-training
+    steps:
+    - - name: feature-engineering
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/feature-pipeline-spark3.jar"
+          - name: input-path
+            value: "chase_ios_app_reviews-partial.csv"  
+          - name: output-path
+            value: "TestDataModel-spark.csv" 
+    - - name: model-training
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/learning-pipeline-spark3.jar"
+          - name: input-path
+            value: "TestDataModel-spark.csv"
+          - name: output-path
+            value: "model/lreg-spark.zip"
+  - name: beam-template
+    inputs:
+      parameters:
+      - name: jar
+      - name: input-path
+      - name: output-path
+      artifacts:
+      - name: my-art
+        path: /pipeline-jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: "{{inputs.parameters.jar}}"
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+    container:
+      image: java:8
+      command: [bash, -c]
+      args: ["wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' && ls && tar -xf spark.tgz && cd spark-2.2.1-bin-hadoop2.7 &&  bin/spark-submit --master local[2] /pipeline-jar --runner=SparkRunner --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} "]
+    resources:
+      mem_mib: 4096
+      cpu_cores: 0.3
+      

@@ -1,0 +1,101 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mls-pipelines-direct-
+spec:
+  entrypoint: feature-training
+  templates:
+  - name: feature-training
+    steps:
+    - - name: feature-engineering
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/feature-pipeline-direct.jar"
+          - name: input-path
+            value: "chase_ios_app_reviews-partial.csv"  
+          - name: output-path
+            value: "TestDataModel-direct.csv"
+    - - name: model-training
+        template: beam-template
+        arguments:
+          parameters:
+          - name: jar
+            value: "jars/learning-pipeline-direct.jar"
+          - name: input-path
+            value: "TestDataModel-direct.csv"
+          - name: output-path
+            value: "model/lreg-direct.zip"
+    - - name: model-serving
+        template: serving-template
+        arguments:
+          parameters:
+          - name: wf-name
+            value: "model-endpoint"
+  - name: beam-template
+    inputs:
+      parameters:
+      - name: jar
+      - name: input-path
+      - name: output-path
+      artifacts:
+      - name: my-art
+        path: /pipeline-jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: "{{inputs.parameters.jar}}"
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+    container:
+      image: java:8
+      command: [bash, -c]
+      args: ["java -jar /pipeline-jar --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} "]
+    resources:
+      mem_mib: 4096
+      cpu_cores: 0.3
+  - name: serving-template
+    inputs:
+      parameters:
+      - name: wf-name
+    resource:
+      action: create
+      manifest: |
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: {{inputs.parameters.wf-name}}
+          labels:
+            app: {{inputs.parameters.wf-name}}
+        spec:
+          type: LoadBalancer
+          selector:
+            app: {{inputs.parameters.wf-name}}
+          ports:
+          - protocol: TCP
+            port: 8080
+            name: http
+
+        ---
+        apiVersion: v1
+        kind: ReplicationController
+        metadata:
+          name: {{inputs.parameters.wf-name}}
+        spec:
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: {{inputs.parameters.wf-name}}
+            spec:
+              containers:
+              - name: {{inputs.parameters.wf-name}}
+                image: pqchat/model-serving:latest
+                ports:
+                - containerPort: 8080
