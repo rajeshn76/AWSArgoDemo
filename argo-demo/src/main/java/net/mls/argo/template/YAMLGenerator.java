@@ -2,9 +2,13 @@ package net.mls.argo.template;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import java.io.IOException;
+
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.MINIMIZE_QUOTES;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.SPLIT_LINES;
 
 public class YAMLGenerator {
 
@@ -28,7 +32,12 @@ public class YAMLGenerator {
         // parse JSON
         JsonNode jsonNodeTree = mapper.readTree(jsonString);
         // save it as YAML
-        String jsonAsYaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
+
+        YAMLFactory f = new YAMLFactory();
+        f.enable(MINIMIZE_QUOTES);
+        f.disable(SPLIT_LINES);
+
+        String jsonAsYaml = new YAMLMapper(f).writeValueAsString(jsonNodeTree);
 
         return jsonAsYaml;
     }
