@@ -61,7 +61,7 @@ spec:
       - name: output-path
       artifacts:
       - name: my-art
-        path: /pipeline-jar
+        path: /pipeline.jar
         s3:
           endpoint: s3.amazonaws.com
           bucket: argo-flow
@@ -75,7 +75,7 @@ spec:
     container:
       image: java:8
       command: [bash, -c]
-      args: ["java -jar /pipeline-jar --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} "]
+      args: ["java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} "]
     resources:
       mem_mib: 4096
       cpu_cores: 0.3
