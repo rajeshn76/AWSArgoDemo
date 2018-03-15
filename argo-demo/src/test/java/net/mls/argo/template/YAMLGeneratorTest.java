@@ -22,12 +22,12 @@ public class YAMLGeneratorTest {
         User tester = createTestUser();
 
         String expected = "---\n" +
-                "name: \"Ogra\"\n" +
+                "name: Ogra\n" +
                 "age: 25\n" +
                 "messages:\n" +
-                "- \"hello argo\"\n" +
-                "- \"hello aws\"\n" +
-                "- \"hello jackson\"\n";
+                "- hello argo\n" +
+                "- hello aws\n" +
+                "- hello jackson\n";
         // assert statements
         assertEquals(expected, YAMLGenerator.asYaml(tester));
     }
