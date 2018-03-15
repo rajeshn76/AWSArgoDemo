@@ -9,6 +9,9 @@ public class ShellCommandExecutorTest {
     public void executePingCommand() throws Exception {
         String output = ShellCommandExecutor.execute("ping google.com");
         System.out.println(output);
-        assertTrue(output.contains("Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)"));
+        assertTrue(output.contains("google.com"));
+        assertTrue(output.toLowerCase().contains("ttl="));
+        assertTrue(output.toLowerCase().contains("packets"));
+        assertTrue(output.toLowerCase().contains("received"));
     }
 }
