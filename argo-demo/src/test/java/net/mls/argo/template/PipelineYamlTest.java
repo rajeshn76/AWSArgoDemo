@@ -99,7 +99,7 @@ public class PipelineYamlTest {
                 "        - containerPort: 8080";
         Pipeline p = new Pipeline();
 
-        Template ft = new Template("feature-training", true);
+        Template ft = new Template("feature-training");
 
         Step featureEngineering = new Step("feature-engineering", "beam-template");
         Arguments feArgs = new Arguments();
@@ -137,7 +137,7 @@ public class PipelineYamlTest {
         ft.addStep(modelServing);
 
 
-        Template bt = new Template("beam-template", false);
+        Template bt = new Template("beam-template");
         Inputs btInputs = new Inputs();
         btInputs.addParameter(new Parameter(JAR_PARAM));
         btInputs.addParameter(new Parameter(INPUT_PARAM));
@@ -164,7 +164,7 @@ public class PipelineYamlTest {
         bt.setResources(resources);
 
 
-        Template bp = new Template("build-push", false);
+        Template bp = new Template("build-push");
         Inputs bpInputs = new Inputs();
         bpInputs.addParameter(new Parameter(JAR_PARAM));
         bpInputs.addParameter(new Parameter(MODEL_PARAM));
@@ -195,7 +195,7 @@ public class PipelineYamlTest {
         List<Sidecar> sidecars = Collections.singletonList(sc);
         bp.setSidecars(sidecars);
 
-        Template st = new Template("serving-template", false);
+        Template st = new Template("serving-template");
         Inputs stInputs = new Inputs();
         stInputs.addParameter(new Parameter(KUBE_PARAM));
         stInputs.addParameter(new Parameter(DOCKER_REPO_PARAM));
