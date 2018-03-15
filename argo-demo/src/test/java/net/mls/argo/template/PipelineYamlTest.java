@@ -7,15 +7,38 @@ import java.util.*;
 
 public class PipelineYamlTest {
 
-    String jarParam = "jar";
-    String inputParam = "input-path";
-    String outputParam = "output-path";
-    String modelParam = "model";
-    String dRepoParam = "docker-repo";
-    String dImageParam = "docker-image";
-    String dVersionParam = "docker-version";
-    String wfParam = "wf-name";
+    static final String BEAM_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
+                                                                + "--outputFile={{inputs.parameters.output-path}}";
 
+    static final String BEAM_FLINK_CMD = "bin/start-local.sh && flink run pipeline.jar --runner=FlinkRunner "
+                                                                + "--inputFile={{inputs.parameters.input-path}} "
+                                                                + "--outputFile={{inputs.parameters.output-path}} ";
+
+    static final String BEAM_SPARK_CMD = "wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' "
+                                            + "&& tar -xf spark.tgz && cd spark-2.2.1-bin-hadoop2.7 &&  "
+                                            + "bin/spark-submit --master local[2] pipeline.jar --runner=SparkRunner "
+                                                                + "--inputFile={{inputs.parameters.input-path}} "
+                                                                + "--outputFile={{inputs.parameters.output-path}} ";
+
+    static final String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
+
+    static final String IMAGE_DOCKER = "docker:17.10";
+    static final String IMAGE_JAVA = "java:8";
+    static final String IMAGE_FLINK = "flink:1.4.0";
+    static final String IMAGE_DIND = "docker:17.10-dind";
+
+    static final String JAR_PARAM = "jar";
+    static final String INPUT_PARAM = "input-path";
+    static final String OUTPUT_PARAM = "output-path";
+    static final String MODEL_PARAM = "model";
+    static final String JAR_ART = "jar-artifact";
+    static final String DOCKER_REPO_PARAM = "docker-repo";
+    static final String DOCKER_IMAGE_PARAM = "docker-image";
+    static final String DOCKER_VERS_PARAM = "docker-version";
+    static final String KUBE_PARAM = "wf-name";
+    public static final String DOCKER_HOST = "DOCKER_HOST";
+    public static final String DOCKER_USERNAME = "DOCKER_USERNAME";
+    public static final String DOCKER_PASSWORD = "DOCKER_PASSWORD";
 
 
     String featureJar = "jars/feature-pipeline-direct.jar";
@@ -33,6 +56,7 @@ public class PipelineYamlTest {
 
     String s3Endpoint = "s3.amazonaws.com";
     String s3Bucket = "argo-flow";
+
     @Test
     public void printPipeline() throws Exception {
         Pipeline p = createPipeline();
@@ -78,70 +102,77 @@ public class PipelineYamlTest {
         Template ft = new Template("feature-training", true);
 
         Step featureEngineering = new Step("feature-engineering", "beam-template");
-        Arguments feArgs =  new Arguments();
-        feArgs.addParameter( new Parameter(jarParam, featureJar));
-        feArgs.addParameter( new Parameter(inputParam, dataPath));
-        feArgs.addParameter( new Parameter(outputParam, featuresPath));
+        Arguments feArgs = new Arguments();
+        feArgs.addParameter(new Parameter(JAR_PARAM, featureJar));
+        feArgs.addParameter(new Parameter(INPUT_PARAM, dataPath));
+        feArgs.addParameter(new Parameter(OUTPUT_PARAM, featuresPath));
         featureEngineering.setArguments(feArgs);
         ft.addStep(featureEngineering);
 
         Step modelTraining = new Step("model-training", "beam-template");
-        Arguments mtArgs =  new Arguments();
-        mtArgs.addParameter( new Parameter(jarParam,learningJar ));
-        mtArgs.addParameter( new Parameter(inputParam, featuresPath));
-        mtArgs.addParameter( new Parameter(outputParam, modelPath));
+        Arguments mtArgs = new Arguments();
+        mtArgs.addParameter(new Parameter(JAR_PARAM, learningJar));
+        mtArgs.addParameter(new Parameter(INPUT_PARAM, featuresPath));
+        mtArgs.addParameter(new Parameter(OUTPUT_PARAM, modelPath));
         modelTraining.setArguments(mtArgs);
         ft.addStep(modelTraining);
 
         Step buildAndPush = new Step("build-and-push", "build-push");
-        Arguments bapArgs =  new Arguments();
-        bapArgs.addParameter( new Parameter(jarParam, modelJar));
-        bapArgs.addParameter( new Parameter(modelParam, modelPath));
-        bapArgs.addParameter( new Parameter(dRepoParam, dockerRepo));
-        bapArgs.addParameter( new Parameter(dImageParam, dockerImage));
-        bapArgs.addParameter( new Parameter(dVersionParam, dockerVersion));
+        Arguments bapArgs = new Arguments();
+        bapArgs.addParameter(new Parameter(JAR_PARAM, modelJar));
+        bapArgs.addParameter(new Parameter(MODEL_PARAM, modelPath));
+        bapArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, dockerRepo));
+        bapArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, dockerImage));
+        bapArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
         buildAndPush.setArguments(bapArgs);
         ft.addStep(buildAndPush);
 
         Step modelServing = new Step("model-serving", "serving-template");
-        Arguments msArgs =  new Arguments();
-        msArgs.addParameter( new Parameter(wfParam, kubeWfName));
-        msArgs.addParameter( new Parameter(dRepoParam, dockerRepo));
-        msArgs.addParameter( new Parameter(dImageParam, dockerImage));
-        msArgs.addParameter( new Parameter(dVersionParam, dockerVersion));
+        Arguments msArgs = new Arguments();
+        msArgs.addParameter(new Parameter(KUBE_PARAM, kubeWfName));
+        msArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, dockerRepo));
+        msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, dockerImage));
+        msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
         modelServing.setArguments(msArgs);
         ft.addStep(modelServing);
 
 
         Template bt = new Template("beam-template", false);
         Inputs btInputs = new Inputs();
-        btInputs.addParameter(new Parameter(jarParam));
-        btInputs.addParameter( new Parameter(inputParam));
-        btInputs.addParameter( new Parameter(outputParam));
+        btInputs.addParameter(new Parameter(JAR_PARAM));
+        btInputs.addParameter(new Parameter(INPUT_PARAM));
+        btInputs.addParameter(new Parameter(OUTPUT_PARAM));
 
-        S3 s3 = new S3(s3Endpoint, s3Bucket, "{{inputs.parameters.jar}}", new Secret("s3-credentials", "accessKey"), new Secret("s3-credentials", "secretKey") );
-        Artifact btArtifact = new Artifact("my-art", "/pipeline.jar", s3);
+        S3 s3 = new S3(s3Endpoint, s3Bucket, "{{inputs.parameters.jar}}", new Secret("s3-credentials", "accessKey"), new Secret("s3-credentials", "secretKey"));
+        Artifact btArtifact = new Artifact(JAR_ART, "/pipeline.jar", s3);
         btInputs.addArtifact(btArtifact);
         bt.setInputs(btInputs);
 
-        Container btContainer = new Container("java:8", Arrays.asList("bash", "-c"), Collections.singletonList("java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}}") );
-        bt.setContainer(btContainer);
+//        For DirectRunner
+//        Container btContainerDirect = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_DIRECT_CMD));
+//        bt.setContainer(btContainerDirect);
+
+//        For SparkRunner
+//        Container btContainerSpark = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_SPARK_CMD));
+//        bt.setContainer(btContainerSpark);
+
+//        For FlinkRunner
+        Container btContainerFlink = new Container(IMAGE_FLINK, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_FLINK_CMD));
+        bt.setContainer(btContainerFlink);
 
         Resources resources = new Resources(4096l, 0.3f);
         bt.setResources(resources);
 
 
-
-
         Template bp = new Template("build-push", false);
         Inputs bpInputs = new Inputs();
-        bpInputs.addParameter(new Parameter(jarParam));
-        bpInputs.addParameter( new Parameter(modelParam));
-        bpInputs.addParameter( new Parameter(dRepoParam));
-        bpInputs.addParameter( new Parameter(dImageParam));
-        bpInputs.addParameter( new Parameter(dVersionParam));
+        bpInputs.addParameter(new Parameter(JAR_PARAM));
+        bpInputs.addParameter(new Parameter(MODEL_PARAM));
+        bpInputs.addParameter(new Parameter(DOCKER_REPO_PARAM));
+        bpInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
+        bpInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
 
-        Artifact bpJarArtifact = new Artifact("jar-artifact", "/model-serving.jar", s3);
+        Artifact bpJarArtifact = new Artifact(JAR_ART, "/model-serving.jar", s3);
         Git git = new Git("https://github.com/venci6/demos.git", "master");
         Artifact bpGitArtifact = new Artifact("docker-files", "/docker-files", git);
         bpInputs.addArtifact(bpGitArtifact);
@@ -149,27 +180,27 @@ public class PipelineYamlTest {
         bp.setInputs(bpInputs);
 
 
-        String shCmd = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
-        Container bpContainer = new Container("docker:17.10", Arrays.asList("sh", "-c"), Collections.singletonList(shCmd) );
+
+        Container bpContainer = new Container(IMAGE_DOCKER, Arrays.asList("sh", "-c"), Collections.singletonList(BUILD_PUSH_CMD));
         Map<String, Secret> userMap = new HashMap<>();
         userMap.put("secretKeyRef", new Secret("docker-credentials", "username"));
         Map<String, Secret> pwMap = new HashMap<>();
         pwMap.put("secretKeyRef", new Secret("docker-credentials", "password"));
-        bpContainer.setEnv(Arrays.asList(new Env("DOCKER_HOST", "127.0.0.1"), new Env("DOCKER_USERNAME", userMap), new Env("DOCKER_PASSWORD", pwMap) ));
+        bpContainer.setEnv(Arrays.asList(new Env(DOCKER_HOST, "127.0.0.1"), new Env(DOCKER_USERNAME, userMap), new Env(DOCKER_PASSWORD, pwMap)));
 
         bp.setContainer(bpContainer);
         Map<String, Boolean> securityContext = new HashMap<>();
         securityContext.put("privileged", true);
-        Sidecar sc = new Sidecar("dind", "docker:17.10-dind",securityContext, true );
+        Sidecar sc = new Sidecar("dind", IMAGE_DIND, securityContext, true);
         List<Sidecar> sidecars = Collections.singletonList(sc);
         bp.setSidecars(sidecars);
 
         Template st = new Template("serving-template", false);
         Inputs stInputs = new Inputs();
-        stInputs.addParameter( new Parameter("wf-name"));
-        stInputs.addParameter( new Parameter("docker-repo"));
-        stInputs.addParameter( new Parameter("docker-image"));
-        stInputs.addParameter( new Parameter("docker-version"));
+        stInputs.addParameter(new Parameter(KUBE_PARAM));
+        stInputs.addParameter(new Parameter(DOCKER_REPO_PARAM));
+        stInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
+        stInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
         st.setInputs(stInputs);
 
         Resource r = new Resource("create", kubeManifest);
