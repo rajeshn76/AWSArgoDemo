@@ -12,6 +12,9 @@ import net.mls.pipeline.feature.fn.DataModelStringifyFn;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.CoderRegistry;
+import org.apache.beam.sdk.io.FileBasedSource;
+import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.io.aws.options.S3Options;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.ParDo;
@@ -20,11 +23,10 @@ import java.util.Optional;
 
 public class FeaturePipeline {
 
+    static final String S3_PATH_FORMAT = "s3://%s/%s";
+
     public static void main(String[] args) {
-
-
         Config conf = ConfigFactory.load();
-
 
         MLSPipelinesOptions options = PipelineOptionsFactory.fromArgs(args)
                 .withValidation()
@@ -40,23 +42,24 @@ public class FeaturePipeline {
                 .orElseGet(() -> conf.getString("s3.bucket"));
         String inputFile = Optional.ofNullable(options.getInputFile())
                 .orElseGet(() -> conf.getString("s3.inputFile"));
+
+        String s3InPath = String.format(S3_PATH_FORMAT, bucket, inputFile);
+
         String outputFile = Optional.ofNullable(options.getOutputFile())
                 .orElseGet(() -> conf.getString("s3.outputFile"));
 
-        p.apply(new InputDataTransform(inputFile, bucket))
-                //AvroIO.read(BasicData.class).from("src/main/resources/data-output.avro"))
+        String s3OutPath =  String.format(S3_PATH_FORMAT, bucket, outputFile);
+
+        p.apply(TextIO.read().from(s3InPath))
                 .apply(ParDo.of(new BasicDataProcessFn()))
                 .apply(ParDo.of(new CSVStringifyFn()))
-                .apply(new OutputDataModelTransform(outputFile, bucket));
-        //TextIO.write().to("feature-pipeline/src/main/resources/data-model.csv").withoutSharding());
+                .apply(TextIO.write().to(s3OutPath).withoutSharding());
 
         try {
             p.run().waitUntilFinish();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
     static class BasicDataProcessFn extends DoFn<String, DataModel> {
@@ -79,7 +82,4 @@ public class FeaturePipeline {
             c.output(fn.apply(dataModel));
         }
     }
-
-
-
 }

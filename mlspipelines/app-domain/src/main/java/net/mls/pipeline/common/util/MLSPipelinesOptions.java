@@ -1,8 +1,8 @@
 package net.mls.pipeline.common.util;
 
-import org.apache.beam.sdk.options.PipelineOptions;
+import org.apache.beam.sdk.io.aws.options.S3Options;
 
-public interface MLSPipelinesOptions extends PipelineOptions {
+public interface MLSPipelinesOptions extends S3Options {
 
     String getInputFile();
     void setInputFile(String value);
@@ -12,11 +12,5 @@ public interface MLSPipelinesOptions extends PipelineOptions {
 
     String getBucket();
     void setBucket(String value);
-
-    String getAccessKey();
-    void setAccessKey(String value);
-
-    String getSecretAccessKey();
-    void setSecretAccessKey(String value);
 
 }
