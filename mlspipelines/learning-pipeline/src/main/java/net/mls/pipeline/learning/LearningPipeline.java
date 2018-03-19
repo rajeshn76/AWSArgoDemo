@@ -10,6 +10,7 @@ import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.GroupByKey;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
@@ -33,7 +34,7 @@ import java.util.Optional;
 public class LearningPipeline {
     private static Config conf = ConfigFactory.load();
 
-    static String output;
+
     static String bucket;
 
     public static void main(String[] args) {
@@ -47,14 +48,18 @@ public class LearningPipeline {
                                 .orElseGet(() -> conf.getString("s3.bucket"));
         String inputFile = Optional.ofNullable(options.getInputFile())
                                     .orElseGet(() -> conf.getString("s3.inputFile"));
-        output = Optional.ofNullable(options.getOutputFile())
+        String output = Optional.ofNullable(options.getOutputFile())
                 .orElseGet(() -> conf.getString("s3.outputFile"));
 
+        String featureColumns = Optional.ofNullable(options.getFeatureColumns())
+                .orElseGet(() -> conf.getString("columns.input"));
+
         p.apply(TextIO.read().from("s3://"+bucket+"/"+inputFile))
+                .apply(Filter.by(x -> !x.equals(conf.getString("columns.input"))))
                 .apply(ParDo.of(new RowProcessFn()))
                 .apply(GroupByKey.create())
                 .apply(ParDo.of(new AggregateRowFn()))
-                .apply(ParDo.of(new LogisticRegressionFn()));
+                .apply(ParDo.of(new LogisticRegressionFn(featureColumns, output, bucket)));
 
         try {
             p.run().waitUntilFinish();
@@ -83,15 +88,25 @@ public class LearningPipeline {
     }
 
     static class LogisticRegressionFn extends DoFn<List<Row>, Void>{
-
+        String featureColumns;
+        String output;
+        String bucket;
+        LogisticRegressionFn(String featureColumns, String output, String bucket) {
+            this.featureColumns=featureColumns;
+            this.output=output;
+            this.bucket=bucket;
+        }
         @ProcessElement
         public void processElement(ProcessContext c) throws Exception {
-            //review,afterRelease,version,label
+            //review,afterRelease,version/hour,label
+
+            System.out.println("Feature columns"+featureColumns);
+            String[] header = featureColumns.split(",");
             StructType schema = new StructType(new StructField[] {
-                    new StructField("review", DataTypes.StringType, false, Metadata.empty()),
-                    new StructField("afterRelease", DataTypes.BooleanType, false, Metadata.empty()),
-                    new StructField("version", DataTypes.StringType, false, Metadata.empty()),
-                    new StructField("label", DataTypes.DoubleType, false, Metadata.empty())
+                    new StructField(header[0], DataTypes.StringType, false, Metadata.empty()),
+                    new StructField(header[1], DataTypes.BooleanType, false, Metadata.empty()),
+                    new StructField(header[2], DataTypes.StringType, false, Metadata.empty()),
+                    new StructField(header[3], DataTypes.DoubleType, false, Metadata.empty())
             });
 
             SQLContext spark = SparkSession.builder()
@@ -102,7 +117,7 @@ public class LearningPipeline {
 
             Dataset<Row> data = spark.createDataFrame(c.element(), schema);
 
-            Tokenizer tokenizer = new Tokenizer().setInputCol("review").setOutputCol("words");
+            Tokenizer tokenizer = new Tokenizer().setInputCol(header[0]).setOutputCol("words");
             HashingTF hashingTF = new HashingTF().setInputCol("words").setOutputCol("rawFeatures")
                                         .setNumFeatures(1000);
             IDF idf = new IDF().setInputCol("rawFeatures").setOutputCol("features").setMinDocFreq(10);

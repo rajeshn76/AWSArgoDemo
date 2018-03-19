@@ -13,6 +13,7 @@ import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.CoderRegistry;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.repackaged.org.apache.commons.lang3.StringUtils;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.ParDo;
 
@@ -21,9 +22,10 @@ import java.util.Optional;
 public class FeaturePipeline {
 
     static final String S3_PATH_FORMAT = "s3://%s/%s";
+    static Config conf = ConfigFactory.load();
 
     public static void main(String[] args) {
-        Config conf = ConfigFactory.load();
+
 
         MLSPipelinesOptions options = PipelineOptionsFactory.fromArgs(args)
                 .withValidation()
@@ -34,6 +36,11 @@ public class FeaturePipeline {
         CoderRegistry cr = p.getCoderRegistry();
         cr.registerCoderForClass(BasicData.class, AvroCoder.of(BasicData.class));
         cr.registerCoderForClass(DataModel.class, AvroCoder.of(DataModel.class));
+
+
+        String featureColumns = Optional.ofNullable(options.getFeatureColumns())
+                .orElseGet(() -> conf.getString("columns.output"));
+
 
         String bucket = Optional.ofNullable(options.getBucket())
                 .orElseGet(() -> conf.getString("s3.bucket"));
@@ -50,7 +57,8 @@ public class FeaturePipeline {
         p.apply(TextIO.read().from(s3InPath))
                 .apply(ParDo.of(new BasicDataProcessFn()))
                 .apply(ParDo.of(new CSVStringifyFn()))
-                .apply(TextIO.write().to(s3OutPath).withoutSharding());
+                .apply(TextIO.write().to(s3OutPath).withoutSharding()
+                        .withHeader(featureColumns));
 
         try {
             p.run().waitUntilFinish();
@@ -63,7 +71,14 @@ public class FeaturePipeline {
         @DoFn.ProcessElement
         public void processElement(ProcessContext c) {
             String[] line = c.element().split(",");
-            IOSReview review = new IOSReview(line[0].trim(), line[3].trim(), line[2].trim(), line[1].trim());
+
+            IOSReview review;
+            if(StringUtils.isNumeric( line[2])) { // date,version,rating,review
+                review  = new IOSReview(line[0].trim(), line[3].trim(), line[2].trim(), line[1].trim());
+            } else { // id,date,tweet,sentiment
+                review = new IOSReview(line[1].trim(), line[2].trim(), line[3].trim(), null);
+            }
+
             if(!review.getBody().toString().isEmpty()) {
                 DataModelProcessFn fn = new DataModelProcessFn();
                 c.output(fn.apply(review));
