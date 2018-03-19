@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 public class ShellCommandExecutorTest {
     @Test
     public void executeArgoCommand() throws Exception {
-        String output = ShellCommandExecutor.execute("argo version");
+        String output = ShellCommandExecutor.execute("argo submit pipeline-docker.yaml");
         System.out.println(output);
     }
 
