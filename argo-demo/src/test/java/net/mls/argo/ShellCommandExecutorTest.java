@@ -7,8 +7,10 @@ import static org.junit.Assert.*;
 public class ShellCommandExecutorTest {
     @Test
     public void executeArgoCommand() throws Exception {
-        String output = ShellCommandExecutor.execute("argo submit pipeline-docker.yaml");
+        ShellCommandExecutor.execute("argo submit ../pipeline-docker.yaml");
+        String output = ShellCommandExecutor.execute("argo list");
         System.out.println(output);
+        assertTrue(output.contains("mls-pipelines"));
     }
 
     @Test
