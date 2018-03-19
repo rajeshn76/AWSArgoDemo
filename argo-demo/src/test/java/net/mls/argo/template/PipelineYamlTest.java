@@ -1,6 +1,7 @@
 package net.mls.argo.template;
 
 import net.mls.argo.template.structure.*;
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Test;
 
 import java.util.*;
@@ -52,7 +53,7 @@ public class PipelineYamlTest {
     String dockerRepo = "pqchat";
     String dockerImage = "model-serving";
     String dockerVersion = "v2";
-    String kubeWfName = "model-endpoint2";
+    String kubeWfName = "model-endpoint-" + RandomStringUtils.randomAlphanumeric(5);
 
     String s3Endpoint = "s3.amazonaws.com";
     String s3Bucket = "argo-flow";
