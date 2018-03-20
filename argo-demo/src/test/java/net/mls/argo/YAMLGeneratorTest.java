@@ -1,5 +1,6 @@
-package net.mls.argo.template;
+package net.mls.argo;
 
+import net.mls.argo.YAMLGenerator;
 import org.junit.Test;
 
 import java.util.ArrayList;

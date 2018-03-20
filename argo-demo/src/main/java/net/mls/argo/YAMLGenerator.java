@@ -1,4 +1,4 @@
-package net.mls.argo.template;
+package net.mls.argo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
