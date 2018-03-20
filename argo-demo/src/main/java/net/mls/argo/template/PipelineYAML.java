@@ -46,7 +46,8 @@ public final class PipelineYAML {
 
         Step modelServing = new Step("model-serving", "serving-template");
         Arguments msArgs = new Arguments();
-        msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getString("kubeWfName") + RandomStringUtils.randomAlphanumeric(5)));
+        msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getString("kubeWfName")
+                + RandomStringUtils.randomAlphanumeric(5).toLowerCase()));
         msArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getString("dockerRepo")));
         msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getString("dockerImage")));
         msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, conf.getString("dockerVersion")));
