@@ -5,26 +5,33 @@ import com.typesafe.config.ConfigFactory;
 import net.mls.pipeline.common.avro.BasicData;
 import net.mls.pipeline.common.util.MLSPipelinesOptions;
 import net.mls.pipeline.feature.avro.DataModel;
-import net.mls.pipeline.feature.avro.IOSReview;
-import net.mls.pipeline.feature.fn.DataModelProcessFn;
-import net.mls.pipeline.feature.fn.DataModelStringifyFn;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.CoderRegistry;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.repackaged.org.apache.commons.lang3.StringUtils;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.values.PCollectionTuple;
+import org.apache.beam.sdk.values.TupleTag;
+import org.apache.beam.sdk.values.TupleTagList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 public class FeaturePipeline {
 
-    static final String S3_PATH_FORMAT = "s3://%s/%s";
-    static Config conf = ConfigFactory.load();
+    private static final Logger LOG = LoggerFactory.getLogger(FeaturePipeline.class);
 
-    public static void main(String[] args) {
+    private static final TupleTag<String> successTag = new TupleTag<String>() {};
+    private static final TupleTag<String> failedTag = new TupleTag<String>() {};
+
+    private static final String S3_PATH_FORMAT = "s3://%s/%s";
+    private static Config conf = ConfigFactory.load();
+
+    public static void main(String[] args) throws Exception {
 
 
         MLSPipelinesOptions options = PipelineOptionsFactory.fromArgs(args)
@@ -39,8 +46,10 @@ public class FeaturePipeline {
 
 
         String featureColumns = Optional.ofNullable(options.getFeatureColumns())
-                .orElseGet(() -> conf.getString("columns.output"));
+                .orElseGet(() -> conf.getString("featureEngineering.outputColumns"));
 
+        String fnClass = Optional.ofNullable(options.getFuncName())
+                .orElseGet(() -> conf.getString("featureEngineering.fnClass"));
 
         String bucket = Optional.ofNullable(options.getBucket())
                 .orElseGet(() -> conf.getString("s3.bucket"));
@@ -53,11 +62,20 @@ public class FeaturePipeline {
                 .orElseGet(() -> conf.getString("s3.outputFile"));
 
         String s3OutPath =  String.format(S3_PATH_FORMAT, bucket, outputFile);
+        String errorPath = String.format(S3_PATH_FORMAT, bucket, conf.getString("s3.errorFile"));
+        Function<String, String> fn = (Function<String,String>) Class.forName(fnClass).newInstance();
 
-        p.apply(TextIO.read().from(s3InPath))
-                .apply(ParDo.of(new BasicDataProcessFn()))
-                .apply(ParDo.of(new CSVStringifyFn()))
-                .apply(TextIO.write().to(s3OutPath).withoutSharding()
+        PCollectionTuple results =
+                p.apply(TextIO.read().from(s3InPath))
+                .apply(ParDo.of(new FeatureEngineeringFn(fn))
+                            .withOutputTags(successTag, TupleTagList.of(failedTag)));
+
+// TODO fix; The XML you provided was not well-formed or did not validate against our published schema
+//        results.get(failedTag)
+//                .apply("Failed", TextIO.write().to(errorPath).withoutSharding());
+
+        results.get(successTag)
+                .apply("successes", TextIO.write().to(s3OutPath).withoutSharding()
                         .withHeader(featureColumns));
 
         try {
@@ -67,31 +85,23 @@ public class FeaturePipeline {
         }
     }
 
-    static class BasicDataProcessFn extends DoFn<String, DataModel> {
+    static class FeatureEngineeringFn extends DoFn<String, String> {
+
+        private Function<String, String> fn;
+
+        FeatureEngineeringFn(Function<String, String> fn) {
+            this.fn = fn;
+        }
+
         @DoFn.ProcessElement
         public void processElement(ProcessContext c) {
-            String[] line = c.element().split(",");
-
-            IOSReview review;
-            if(StringUtils.isNumeric( line[2])) { // date,version,rating,review
-                review  = new IOSReview(line[0].trim(), line[3].trim(), line[2].trim(), line[1].trim());
-            } else { // id,date,tweet,sentiment
-                review = new IOSReview(line[1].trim(), line[2].trim(), line[3].trim(), null);
-            }
-
-            if(!review.getBody().toString().isEmpty()) {
-                DataModelProcessFn fn = new DataModelProcessFn();
-                c.output(fn.apply(review));
+            try {
+                c.output(fn.apply(c.element()));
+            } catch (Exception e) {
+                LOG.error("Failed to process {} --- adding to dead letter file. Error {}", c.element(), e.toString());
+                c.output(failedTag, c.element());
             }
         }
     }
 
-    static class CSVStringifyFn extends DoFn<DataModel, String> {
-        @DoFn.ProcessElement
-        public void processElement(ProcessContext c) {
-            DataModel dataModel = c.element();
-            DataModelStringifyFn fn = new DataModelStringifyFn();
-            c.output(fn.apply(dataModel));
-        }
-    }
 }

@@ -16,4 +16,7 @@ public interface MLSPipelinesOptions extends S3Options {
     String getFeatureColumns();
     void setFeatureColumns(String value);
 
+    String getFuncName();
+    void setFuncName(String value);
+
 }
