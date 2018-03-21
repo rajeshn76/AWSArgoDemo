@@ -1,5 +1,6 @@
-package net.mls.argo;
+package net.mls.argo.util;
 
+import net.mls.argo.util.ShellCommandExecutor;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

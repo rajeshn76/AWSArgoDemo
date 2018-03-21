@@ -1,4 +1,4 @@
-package net.mls.argo;
+package net.mls.argo.util;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

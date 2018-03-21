@@ -1,0 +1,16 @@
+---
+featureJar: "jars/feature-pipeline-direct.jar"
+dataPath: "chase_ios_app_reviews-partial.csv"
+featuresPath: "TestDataModel-direct.csv"
+
+learningJar: "jars/learning-pipeline-direct.jar"
+modelPath: "model/lreg-flink.zip"
+
+modelJar: "jars/model-serving.jar"
+dockerRepo: "pqchat"
+dockerImage: "model-serving"
+dockerVersion: "v2"
+kubeWfName: "model-endpoint-"
+
+s3Endpoint: "s3.amazonaws.com"
+s3Bucket: "argo-flow"
