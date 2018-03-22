@@ -15,19 +15,23 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
 
         Template ft = new Template("feature-training");
 
-        Step featureEngineering = new Step("feature-engineering", "beam-template");
+        Step featureEngineering = new Step("feature-engineering", "fe-template");
         Arguments feArgs = new Arguments();
         feArgs.addParameter(new Parameter(JAR_PARAM, conf.getFeatureJar()));
         feArgs.addParameter(new Parameter(INPUT_PARAM, conf.getDataPath()));
         feArgs.addParameter(new Parameter(OUTPUT_PARAM, conf.getFeaturesPath()));
+        feArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
+        feArgs.addParameter(new Parameter(FE_JAR_PARAM, conf.getFuncJar()));
+        feArgs.addParameter(new Parameter(FUNC_PARAM, conf.getFuncName()));
         featureEngineering.setArguments(feArgs);
         ft.addStep(featureEngineering);
 
-        Step modelTraining = new Step("model-training", "beam-template");
+        Step modelTraining = new Step("model-training", "mt-template");
         Arguments mtArgs = new Arguments();
         mtArgs.addParameter(new Parameter(JAR_PARAM, conf.getLearningJar()));
         mtArgs.addParameter(new Parameter(INPUT_PARAM, conf.getFeaturesPath()));
         mtArgs.addParameter(new Parameter(OUTPUT_PARAM, conf.getModelPath()));
+        mtArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
         modelTraining.setArguments(mtArgs);
         ft.addStep(modelTraining);
 
@@ -51,21 +55,56 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         modelServing.setArguments(msArgs);
         ft.addStep(modelServing);
 
+        // Common between FE & MT
+        Secret s3AccessSecret = new Secret("s3-credentials", "accessKey");
+        Secret s3SecSecret = new Secret("s3-credentials", "secretKey");
+        S3 s3 = new S3(conf.getS3Endpoint(), conf.getS3Bucket(), "{{inputs.parameters.jar}}", s3AccessSecret, s3SecSecret);
+        Artifact pipelineArtifact = new Artifact(JAR_ART, "/pipeline.jar", s3);
 
-        Template bt = new Template("beam-template");
-        Inputs btInputs = new Inputs();
-        btInputs.addParameter(new Parameter(JAR_PARAM));
-        btInputs.addParameter(new Parameter(INPUT_PARAM));
-        btInputs.addParameter(new Parameter(OUTPUT_PARAM));
+        Map<String, Secret> s3Access = new HashMap<>();
+        s3Access.put("secretKeyRef", new Secret("s3-credentials", "accessKey"));
+        Map<String, Secret> s3Secret = new HashMap<>();
+        s3Secret.put("secretKeyRef", new Secret("s3-credentials", "secretKey"));
+        List<Env> s3EnvList = Arrays.asList(new Env(S3_ACCESS, s3Access), new Env(S3_SECRET, s3Secret));
 
-        S3 s3 = new S3(conf.getS3Endpoint(), conf.getS3Bucket(), "{{inputs.parameters.jar}}", new Secret("s3-credentials", "accessKey"), new Secret("s3-credentials", "secretKey"));
-        Artifact btArtifact = new Artifact(JAR_ART, "/pipeline.jar", s3);
-        btInputs.addArtifact(btArtifact);
-        bt.setInputs(btInputs);
+        Resources btResources = new Resources(4096L, 0.3f);
+
+
+        Template feTemplate = new Template("fe-template");
+        Inputs feTemplateInputs = new Inputs();
+        feTemplateInputs.addParameter(new Parameter(JAR_PARAM));
+        feTemplateInputs.addParameter(new Parameter(INPUT_PARAM));
+        feTemplateInputs.addParameter(new Parameter(OUTPUT_PARAM));
+        feTemplateInputs.addParameter(new Parameter(COLUMNS_PARAM));
+        feTemplateInputs.addParameter(new Parameter(FE_JAR_PARAM));
+        feTemplateInputs.addParameter(new Parameter(FUNC_PARAM));
+
+        feTemplateInputs.addArtifact(pipelineArtifact);
+        S3 s3Func = new S3(conf.getS3Endpoint(), conf.getS3Bucket(), "{{inputs.parameters.feature-engineering-jar}}", s3AccessSecret, s3SecSecret);
+        Artifact funcArtifact = new Artifact(FUNC_ART, "/feature-engineering.jar", s3Func);
+        feTemplateInputs.addArtifact(funcArtifact);
+        feTemplate.setInputs(feTemplateInputs);
+
+        Container feContainerDirect = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(FE_DIRECT_CMD));
+        feTemplate.setContainer(feContainerDirect);
+        feContainerDirect.setEnv(s3EnvList);
+        feTemplate.setResources(btResources);
+
+
+        Template mtTemplate = new Template("mt-template");
+        Inputs mtTemplateInputs = new Inputs();
+        mtTemplateInputs.addParameter(new Parameter(JAR_PARAM));
+        mtTemplateInputs.addParameter(new Parameter(INPUT_PARAM));
+        mtTemplateInputs.addParameter(new Parameter(OUTPUT_PARAM));
+        mtTemplateInputs.addParameter(new Parameter(COLUMNS_PARAM));
+
+
+        mtTemplateInputs.addArtifact(pipelineArtifact);
+        mtTemplate.setInputs(mtTemplateInputs);
 
 //        For DirectRunner
-        Container btContainerDirect = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_DIRECT_CMD));
-        bt.setContainer(btContainerDirect);
+        Container mtContainerDirect = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(MT_DIRECT_CMD));
+        mtTemplate.setContainer(mtContainerDirect);
 
 //        For SparkRunner
 //        Container btContainerSpark = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_SPARK_CMD));
@@ -75,8 +114,10 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
 //        Container btContainerFlink = new Container(IMAGE_FLINK, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_FLINK_CMD));
 //        bt.setContainer(btContainerFlink);
 
-        Resources resources = new Resources(4096L, 0.3f);
-        bt.setResources(resources);
+
+        mtContainerDirect.setEnv(s3EnvList);
+
+        mtTemplate.setResources(btResources);
 
 
         Template bp = new Template("build-push");
@@ -117,12 +158,12 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         stInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
         st.setInputs(stInputs);
 
-
         Resource r = new Resource("create", KUBE_MANIFEST);
         st.setResource(r);
 
         p.spec.addTemplate(ft);
-        p.spec.addTemplate(bt);
+        p.spec.addTemplate(feTemplate);
+        p.spec.addTemplate(mtTemplate);
         p.spec.addTemplate(bp);
         p.spec.addTemplate(st);
 

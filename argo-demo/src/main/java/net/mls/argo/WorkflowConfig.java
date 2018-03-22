@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class WorkflowConfig {
 
-    @Value("${featureEngineering.featureJar}")
+   @Value("${featureEngineering.featureJar}")
     private String featureJar;
 
     @Value("${featureEngineering.dataPath}")
@@ -14,6 +14,16 @@ public class WorkflowConfig {
 
     @Value("${featureEngineering.featuresPath}")
     private String featuresPath;
+
+    @Value("${featureEngineering.columns}")
+    private String columns;
+
+    @Value("${featureEngineering.funcJar}")
+    private String funcJar;
+
+    @Value("${featureEngineering.funcName}")
+    private String funcName;
+
 
     @Value("${modelTraining.learningJar}")
     private String learningJar;
@@ -48,6 +58,18 @@ public class WorkflowConfig {
 
     public String getFeaturesPath() {
         return featuresPath;
+    }
+
+    public String getColumns() {
+        return columns;
+    }
+
+    public String getFuncJar() {
+        return funcJar;
+    }
+
+    public String getFuncName() {
+        return funcName;
     }
 
     public String getLearningJar() {
@@ -91,6 +113,9 @@ public class WorkflowConfig {
             wc.featureJar = wc.featureJar != null ? wc.featureJar : this.featureJar;
             wc.dataPath = wc.dataPath != null ? wc.dataPath : this.dataPath;
             wc.featuresPath = wc.featuresPath != null ? wc.featuresPath : this.featuresPath;
+            wc.columns = wc.columns != null ? wc.columns : this.columns;
+            wc.funcJar = wc.funcJar != null ? wc.funcJar : this.funcJar;
+            wc.funcName = wc.funcName != null ? wc.funcName : this.funcName;
             wc.learningJar = wc.learningJar != null ? wc.learningJar : this.learningJar;
             wc.modelPath = wc.modelPath != null ? wc.modelPath : this.modelPath;
             wc.modelJar = wc.modelJar != null ? wc.modelJar : this.modelJar;

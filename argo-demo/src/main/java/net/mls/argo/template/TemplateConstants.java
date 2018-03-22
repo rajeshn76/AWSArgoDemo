@@ -2,8 +2,14 @@ package net.mls.argo.template;
 
 public interface TemplateConstants {
 
-    String BEAM_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}}";
+    String FE_DIRECT_CMD = "java -cp pipeline.jar:feature-engineering.jar:* net.mls.pipeline.feature.FeaturePipeline " +
+            "--inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} " +
+            "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " +
+            "--funcName={{inputs.parameters.func-name}}";
+
+    String MT_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
+            + "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
+            "--awsRegion=us-east-1";
 
     String BEAM_FLINK_CMD = "bin/start-local.sh && flink run pipeline.jar --runner=FlinkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
@@ -25,13 +31,19 @@ public interface TemplateConstants {
     String JAR_PARAM = "jar";
     String INPUT_PARAM = "input-path";
     String OUTPUT_PARAM = "output-path";
+    String COLUMNS_PARAM = "feature-columns";
+    String FE_JAR_PARAM = "feature-engineering-jar";
+    String FUNC_PARAM = "func-name";
     String MODEL_PARAM = "model";
     String JAR_ART = "jar-artifact";
+    String FUNC_ART = "fe-artifact";
     String DOCKER_REPO_PARAM = "docker-repo";
     String DOCKER_IMAGE_PARAM = "docker-image";
     String DOCKER_VERS_PARAM = "docker-version";
     String KUBE_PARAM = "wf-name";
 
+    String S3_ACCESS = "AWS_ACCESS_KEY_ID";
+    String S3_SECRET = "AWS_SECRET_ACCESS_KEY";
     String DOCKER_HOST = "DOCKER_HOST";
     String DOCKER_USERNAME = "DOCKER_USERNAME";
     String DOCKER_PASSWORD = "DOCKER_PASSWORD";

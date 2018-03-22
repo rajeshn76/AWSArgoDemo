@@ -1,11 +1,15 @@
 ---
 featureEngineering:
-  featureJar: "jars/feature-pipeline-direct.jar"
-  dataPath: "chase_ios_app_reviews-partial.csv"
+  featureJar: "jars/v2/feature-pipeline-direct.jar"
+  dataPath: "app-reviews-partial.csv"
   featuresPath: "TestDataModel-direct.csv"
+  columns: "review,afterRelease,version,label"
+  funcJar: "feature-engineering/feature-engineering-sentiment-1.0-SNAPSHOT.jar"
+  funcName: "net.mls.pipeline.feature.sentimentanalysis.ProcessReviewFn"
+
 
 modelTraining:
-  learningJar: "jars/learning-pipeline-direct.jar"
+  learningJar: "jars/v2/learning-pipeline-direct.jar"
   modelPath: "model/lreg-direct.zip"
 
 modelServing:
@@ -15,7 +19,7 @@ modelServing:
 buildPush:
   dockerRepo: "pqchat"
   dockerImage: "model-serving"
-  dockerVersion: "v2"
+  dockerVersion: "v4"
 
 s3Endpoint: "s3.amazonaws.com"
 s3Bucket: "argo-flow"
