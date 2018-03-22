@@ -1,4 +1,4 @@
-package net.mls.argo.util;
+package net.mls.argo;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -6,30 +6,32 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class WorkflowConfig {
 
-    @Value("${featureJar}")
+    @Value("${featureEngineering.featureJar}")
     private String featureJar;
 
-    @Value("${dataPath}")
+    @Value("${featureEngineering.dataPath}")
     private String dataPath;
 
-    @Value("${featuresPath}")
+    @Value("${featureEngineering.featuresPath}")
     private String featuresPath;
 
-    @Value("${learningJar}")
+    @Value("${modelTraining.learningJar}")
     private String learningJar;
-    @Value("${modelPath}")
+    @Value("${modelTraining.modelPath}")
     private String modelPath;
 
-    @Value("${modelJar}")
+    @Value("${modelServing.modelJar}")
     private String modelJar;
-    @Value("${dockerRepo}")
-    private String dockerRepo;
-    @Value("${dockerImage}")
-    private String dockerImage;
-    @Value("${dockerVersion}")
-    private String dockerVersion;
-    @Value("${kubeWfName}")
+    @Value("${modelServing.kubeWfName}")
     private String kubeWfName;
+
+    @Value("${buildPush.dockerRepo}")
+    private String dockerRepo;
+    @Value("${buildPush.dockerImage}")
+    private String dockerImage;
+    @Value("${buildPush.dockerVersion}")
+    private String dockerVersion;
+
 
     @Value("${s3Endpoint}")
     private String s3Endpoint;
@@ -84,7 +86,7 @@ public class WorkflowConfig {
         return s3Bucket;
     }
 
-    public WorkflowConfig merge(WorkflowConfig wc) {
+    public WorkflowConfig mergeWith(WorkflowConfig wc) {
         if (wc != null) {
             wc.featureJar = wc.featureJar != null ? wc.featureJar : this.featureJar;
             wc.dataPath = wc.dataPath != null ? wc.dataPath : this.dataPath;

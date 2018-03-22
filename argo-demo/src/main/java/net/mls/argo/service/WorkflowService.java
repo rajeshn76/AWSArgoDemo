@@ -1,7 +1,7 @@
 package net.mls.argo.service;
 
-import net.mls.argo.operation.WorkflowOperation;
-import net.mls.argo.util.WorkflowConfig;
+import net.mls.argo.operation.SentimentAnalysisWorkflowOperation;
+import net.mls.argo.WorkflowConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,10 +15,10 @@ public class WorkflowService {
     private WorkflowConfig config;
 
     @Autowired
-    private WorkflowOperation wfop;
+    private SentimentAnalysisWorkflowOperation wfop;
 
     @RequestMapping(value = "argo", method = RequestMethod.POST)
     public void execute(@RequestBody WorkflowConfig wc) throws Exception {
-        wfop.executePipeline(config.merge(wc));
+        wfop.apply(config.mergeWith(wc));
     }
 }

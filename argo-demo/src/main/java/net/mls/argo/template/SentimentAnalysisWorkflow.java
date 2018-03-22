@@ -1,17 +1,17 @@
 package net.mls.argo.template;
 
+import net.mls.argo.WorkflowConfig;
 import net.mls.argo.template.structure.*;
-import net.mls.argo.util.WorkflowConfig;
 import org.apache.commons.lang.RandomStringUtils;
 
 import java.util.*;
 
-import static net.mls.argo.template.ParamConstants.*;
+import static net.mls.argo.template.TemplateConstants.*;
 
-public final class PipelineYAML {
+public final class SentimentAnalysisWorkflow implements WorkflowFactory {
 
-    public Pipeline createPipeline(WorkflowConfig conf) {
-        Pipeline p = new Pipeline();
+    public WorkflowSpec create(WorkflowConfig conf) {
+        WorkflowSpec p = new WorkflowSpec();
 
         Template ft = new Template("feature-training");
 

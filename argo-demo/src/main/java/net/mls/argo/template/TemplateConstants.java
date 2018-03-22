@@ -1,6 +1,6 @@
 package net.mls.argo.template;
 
-public interface ParamConstants {
+public interface TemplateConstants {
 
     String BEAM_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
             + "--outputFile={{inputs.parameters.output-path}}";
@@ -50,8 +50,7 @@ public interface ParamConstants {
             "  ports:\n" +
             "  - protocol: TCP\n" +
             "    port: 8080\n" +
-            "    name: http\n" +
-            "\n" +
+            "    name: http\n\n" +
             "---\n" +
             "apiVersion: v1\n" +
             "kind: ReplicationController\n" +

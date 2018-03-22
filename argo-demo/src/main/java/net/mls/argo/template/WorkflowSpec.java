@@ -1,6 +1,9 @@
-package net.mls.argo.template.structure;
+package net.mls.argo.template;
 
-public final class Pipeline {
+import net.mls.argo.template.structure.Metadata;
+import net.mls.argo.template.structure.Spec;
+
+public final class WorkflowSpec {
     public String apiVersion = "argoproj.io/v1alpha1";
     public String kind = "Workflow";
 
