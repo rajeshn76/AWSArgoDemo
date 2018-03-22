@@ -8,19 +8,23 @@ spec:
   - name: feature-training
     steps:
     - - name: feature-engineering
-        template: beam-template
+        template: fe-direct-template
         arguments:
           parameters:
           - name: jar
             value: jars/v2/feature-pipeline-direct.jar
           - name: input-path
-            value: "chase_ios_app_reviews-partial.csv"  
+            value: "app-reviews-partial.csv"  
           - name: output-path
             value: "TestDataModel-direct.csv"
           - name: feature-columns
             value: text,afterRelease,version,label
+          - name: feature-engineering-jar
+            value: feature-engineering/feature-engineering-sentiment-1.0-SNAPSHOT.jar 
+          - name: func-name
+            value: net.mls.pipeline.feature.sentimentanalysis.ProcessReviewFn 
     - - name: model-training
-        template: beam-template
+        template: mt-direct-template
         arguments:
           parameters:
           - name: jar
@@ -44,7 +48,7 @@ spec:
           - name: docker-image
             value: "model-serving"
           - name: docker-version
-            value: "v2"
+            value: "v4"
     - - name: model-serving
         template: serving-template
         arguments:
@@ -56,8 +60,63 @@ spec:
           - name: docker-image
             value: "model-serving"
           - name: docker-version
-            value: "v2"
-  - name: beam-template
+            value: "v4"
+  - name: fe-direct-template
+    inputs:
+      parameters:
+      - name: jar
+      - name: input-path
+      - name: output-path
+      - name: feature-columns
+      - name: feature-engineering-jar
+      - name: func-name
+      artifacts:
+      - name: pipeline-art
+        path: /pipeline.jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: '{{inputs.parameters.jar}}'
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+      - name: fe-art
+        path: /feature-engineering.jar
+        s3:
+          endpoint: s3.amazonaws.com
+          bucket: argo-flow
+          key: '{{inputs.parameters.feature-engineering-jar}}'
+          accessKeySecret:
+            name: s3-credentials
+            key: accessKey
+          secretKeySecret:
+            name: s3-credentials
+            key: secretKey
+    container:
+      image: java:8
+      command: 
+      - bash
+      - -c
+      args: 
+      - java -cp pipeline.jar:feature-engineering.jar:* net.mls.pipeline.feature.FeaturePipeline --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 --funcName={{inputs.parameters.func-name}}
+      env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: s3-credentials
+            key: accessKey 
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: s3-credentials
+            key: secretKey
+    resources:
+      mem_mib: 4096
+      cpu_cores: 0.3
+  - name: mt-direct-template
     inputs:
       parameters:
       - name: jar
@@ -84,6 +143,17 @@ spec:
       - -c
       args: 
       - java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1
+      env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: s3-credentials
+            key: accessKey 
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: s3-credentials
+            key: secretKey
     resources:
       mem_mib: 4096
       cpu_cores: 0.3
