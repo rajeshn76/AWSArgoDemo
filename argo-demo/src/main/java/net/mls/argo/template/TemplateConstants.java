@@ -11,15 +11,17 @@ public interface TemplateConstants {
             + "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
             "--awsRegion=us-east-1";
 
-    String BEAM_FLINK_CMD = "bin/start-local.sh && flink run pipeline.jar --runner=FlinkRunner "
+    String MT_FLINK_CMD = "bin/start-local.sh && flink run pipeline.jar --runner=FlinkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} ";
+            + "--outputFile={{inputs.parameters.output-path}} "
+            + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
-    String BEAM_SPARK_CMD = "wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' "
+    String MT_SPARK_CMD = "wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' "
             + "&& tar -xf spark.tgz && cd spark-2.2.1-bin-hadoop2.7 &&  "
             + "bin/spark-submit --master local[2] pipeline.jar --runner=SparkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} ";
+            + "--outputFile={{inputs.parameters.output-path}} "
+            + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
     String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
 

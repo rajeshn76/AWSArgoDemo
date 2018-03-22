@@ -98,25 +98,13 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         mtTemplateInputs.addParameter(new Parameter(OUTPUT_PARAM));
         mtTemplateInputs.addParameter(new Parameter(COLUMNS_PARAM));
 
-
         mtTemplateInputs.addArtifact(pipelineArtifact);
         mtTemplate.setInputs(mtTemplateInputs);
 
-//        For DirectRunner
-        Container mtContainerDirect = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(MT_DIRECT_CMD));
-        mtTemplate.setContainer(mtContainerDirect);
+        Container mtContainer = createMTContainer(conf.getTrainingRunner());
+        mtContainer.setEnv(s3EnvList);
 
-//        For SparkRunner
-//        Container btContainerSpark = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_SPARK_CMD));
-//        bt.setContainer(btContainerSpark);
-
-//        For FlinkRunner
-//        Container btContainerFlink = new Container(IMAGE_FLINK, Arrays.asList("bash", "-c"), Collections.singletonList(BEAM_FLINK_CMD));
-//        bt.setContainer(btContainerFlink);
-
-
-        mtContainerDirect.setEnv(s3EnvList);
-
+        mtTemplate.setContainer(mtContainer);
         mtTemplate.setResources(btResources);
 
 
@@ -168,5 +156,18 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         p.spec.addTemplate(st);
 
         return p;
+    }
+
+    private Container createMTContainer(String runner) {
+        Container c;
+
+        if(runner.equalsIgnoreCase("FlinkRunner")) {
+            c = new Container(IMAGE_FLINK, Arrays.asList("bash", "-c"), Collections.singletonList(MT_FLINK_CMD));
+        } else if(runner.equalsIgnoreCase("SparkRunner")) {
+            c = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(MT_SPARK_CMD));
+        } else {  // DirectRunner
+            c = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(MT_DIRECT_CMD));
+        }
+        return c;
     }
 }

@@ -24,11 +24,15 @@ public class WorkflowConfig {
     @Value("${featureEngineering.funcName}")
     private String funcName;
 
+    @Value("${featureEngineering.runner}")
+    private String featureRunner;
 
     @Value("${modelTraining.learningJar}")
     private String learningJar;
     @Value("${modelTraining.modelPath}")
     private String modelPath;
+    @Value("${modelTraining.runner}")
+    private String trainingRunner;
 
     @Value("${modelServing.modelJar}")
     private String modelJar;
@@ -108,6 +112,14 @@ public class WorkflowConfig {
         return s3Bucket;
     }
 
+    public String getFeatureRunner() {
+        return featureRunner;
+    }
+
+    public String getTrainingRunner() {
+        return trainingRunner;
+    }
+
     public WorkflowConfig mergeWith(WorkflowConfig wc) {
         if (wc != null) {
             wc.featureJar = wc.featureJar != null ? wc.featureJar : this.featureJar;
@@ -125,6 +137,8 @@ public class WorkflowConfig {
             wc.kubeWfName = wc.kubeWfName != null ? wc.kubeWfName : this.kubeWfName;
             wc.s3Endpoint = wc.s3Endpoint != null ? wc.s3Endpoint : this.s3Endpoint;
             wc.s3Bucket = wc.s3Bucket != null ? wc.s3Bucket : this.s3Bucket;
+            wc.featureRunner = wc.featureRunner != null ? wc.featureRunner : this.featureRunner;;
+            wc.trainingRunner = wc.trainingRunner != null ? wc.trainingRunner : this.trainingRunner;;
         }
         return wc;
     }

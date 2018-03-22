@@ -6,11 +6,13 @@ featureEngineering:
   columns: "review,afterRelease,version,label"
   funcJar: "feature-engineering/feature-engineering-sentiment-1.0-SNAPSHOT.jar"
   funcName: "net.mls.pipeline.feature.sentimentanalysis.ProcessReviewFn"
+  runner: "DirectRunner"
 
 
 modelTraining:
   learningJar: "jars/v2/learning-pipeline-direct.jar"
   modelPath: "model/lreg-direct.zip"
+  runner: "DirectRunner"
 
 modelServing:
   modelJar: "jars/model-serving.jar"
