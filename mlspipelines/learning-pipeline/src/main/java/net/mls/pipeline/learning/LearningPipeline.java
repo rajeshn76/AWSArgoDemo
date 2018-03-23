@@ -55,7 +55,7 @@ public class LearningPipeline {
                 .orElseGet(() -> conf.getString("columns.input"));
 
         p.apply(TextIO.read().from("s3://"+bucket+"/"+inputFile))
-                .apply(Filter.by(x -> !x.equals(conf.getString("columns.input"))))
+                .apply(Filter.by(x -> !x.equals(featureColumns)))
                 .apply(ParDo.of(new RowProcessFn()))
                 .apply(GroupByKey.create())
                 .apply(ParDo.of(new AggregateRowFn()))
