@@ -39,6 +39,7 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         Arguments bapArgs = new Arguments();
         bapArgs.addParameter(new Parameter(JAR_PARAM, conf.getModelJar()));
         bapArgs.addParameter(new Parameter(MODEL_PARAM, conf.getModelPath()));
+        bapArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
         bapArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
         bapArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getDockerImage()));
         bapArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, conf.getDockerVersion()));
@@ -112,6 +113,7 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         Inputs bpInputs = new Inputs();
         bpInputs.addParameter(new Parameter(JAR_PARAM));
         bpInputs.addParameter(new Parameter(MODEL_PARAM));
+        bpInputs.addParameter(new Parameter(COLUMNS_PARAM));
         bpInputs.addParameter(new Parameter(DOCKER_REPO_PARAM));
         bpInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
         bpInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
@@ -160,13 +162,14 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
 
     private Container createMTContainer(String runner) {
         Container c;
+        List<String> bash = Arrays.asList("bash", "-c");
 
         if(runner.equalsIgnoreCase("FlinkRunner")) {
-            c = new Container(IMAGE_FLINK, Arrays.asList("bash", "-c"), Collections.singletonList(MT_FLINK_CMD));
+            c = new Container(IMAGE_FLINK, bash, Collections.singletonList(MT_FLINK_CMD));
         } else if(runner.equalsIgnoreCase("SparkRunner")) {
-            c = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(MT_SPARK_CMD));
+            c = new Container(IMAGE_JAVA, bash, Collections.singletonList(MT_SPARK_CMD));
         } else {  // DirectRunner
-            c = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(MT_DIRECT_CMD));
+            c = new Container(IMAGE_JAVA, bash, Collections.singletonList(MT_DIRECT_CMD));
         }
         return c;
     }

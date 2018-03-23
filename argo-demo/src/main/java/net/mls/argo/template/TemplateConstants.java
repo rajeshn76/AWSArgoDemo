@@ -23,7 +23,9 @@ public interface TemplateConstants {
             + "--outputFile={{inputs.parameters.output-path}} "
             + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
-    String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
+    String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; " +
+            "./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.feature-columns}} {{inputs.parameters.docker-repo}} " +
+            "{{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
 
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";

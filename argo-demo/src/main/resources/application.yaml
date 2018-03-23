@@ -2,20 +2,20 @@
 featureEngineering:
   featureJar: "jars/v2/feature-pipeline-direct.jar"
   dataPath: "app-reviews-partial.csv"
-  featuresPath: "TestDataModel-direct.csv"
+  featuresPath: "ReviewDataModel-direct.csv"
   columns: "review,afterRelease,version,label"
-  funcJar: "feature-engineering/feature-engineering-sentiment-1.0-SNAPSHOT.jar"
-  funcName: "net.mls.pipeline.feature.sentimentanalysis.ProcessReviewFn"
+  funcJar: "feature-engineering/sa-reviews-tweets.jar"
+  funcName: "net.mls.features.sentiment.ProcessReviewFn"
   runner: "DirectRunner"
 
 
 modelTraining:
   learningJar: "jars/v2/learning-pipeline-direct.jar"
-  modelPath: "model/lreg-direct.zip"
+  modelPath: "model/lreg-review-direct.zip"
   runner: "DirectRunner"
 
 modelServing:
-  modelJar: "jars/model-serving.jar"
+  modelJar: "jars/v2/model-serving.jar"
   kubeWfName: "model-endpoint-"
 
 buildPush:
