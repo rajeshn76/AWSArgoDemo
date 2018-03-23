@@ -16,13 +16,13 @@ spec:
           - name: input-path
             value: "app-reviews-partial.csv"  
           - name: output-path
-            value: "TestDataModel-direct.csv"
+            value: "ReviewsDataModel-direct.csv"
           - name: feature-columns
             value: text,afterRelease,version,label
           - name: feature-engineering-jar
-            value: feature-engineering/feature-engineering-sentiment-1.0-SNAPSHOT.jar 
+            value: feature-engineering/sa-reviews-tweets.jar 
           - name: func-name
-            value: net.mls.pipeline.feature.sentimentanalysis.ProcessReviewFn 
+            value: net.mls.features.sentiment.ProcessReviewFn 
     - - name: model-training
         template: mt-direct-template
         arguments:
@@ -30,9 +30,9 @@ spec:
           - name: jar
             value: "jars/v2/learning-pipeline-direct.jar"
           - name: input-path
-            value: "TestDataModel-direct.csv"
+            value: "ReviewsDataModel-direct.csv"
           - name: output-path
-            value: "model/lreg-flink.zip"
+            value: "model/lreg-review-direct.zip"
           - name: feature-columns
             value: text,afterRelease,version,label
     - - name: build-and-push
@@ -42,7 +42,9 @@ spec:
           - name: jar
             value: "jars/model-serving.jar"
           - name: model
-            value: "model/lreg-direct.zip"
+            value: "model/lreg-review-direct.zip"
+          - name: feature-columns
+            value: text,afterRelease,version,label
           - name: docker-repo
             value: "pqchat"
           - name: docker-image
@@ -162,6 +164,7 @@ spec:
       parameters:
       - name: jar
       - name: model
+      - name: feature-columns
       - name: docker-repo
       - name: docker-image
       - name: docker-version
@@ -189,7 +192,7 @@ spec:
       - sh
       - -c
       args: 
-      - cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;  ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}
+      - cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;  ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.feature-columns}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}
       env:
       - name: DOCKER_HOST               #the docker daemon can be access on the standard port on localhost
         value: 127.0.0.1

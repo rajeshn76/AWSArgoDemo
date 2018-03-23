@@ -8,6 +8,7 @@ s3:
   bucketName:
   endpoint: s3.amazonaws.com
   outputFile: model/lreg-direct.zip
+  columns: text,afterRelease,hour,label
 
 
 spring:

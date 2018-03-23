@@ -38,6 +38,8 @@ public class LogisticRegressionOperation implements Function<String, String> {
     private String bucketName;
     @Value("${s3.outputFile}")
     private String outputFile;
+    @Value("${s3.columns}")
+    private String columns;
 
     @PostConstruct
     private void init() throws IOException {
@@ -50,11 +52,13 @@ public class LogisticRegressionOperation implements Function<String, String> {
     public String apply(String review) {
         List<Row> data = Collections.singletonList(RowFactory.create(review, false, "0", 0.0));
 
+        String[] header = columns.split(",");
+
         StructType schema = new StructType(new StructField[] {
-                new StructField("review", DataTypes.StringType, false, Metadata.empty()),
-                new StructField("afterRelease", DataTypes.BooleanType, false, Metadata.empty()),
-                new StructField("version", DataTypes.StringType, false, Metadata.empty()),
-                new StructField("label", DataTypes.DoubleType, false, Metadata.empty())
+                new StructField(header[0], DataTypes.StringType, false, Metadata.empty()),
+                new StructField(header[1], DataTypes.BooleanType, false, Metadata.empty()),
+                new StructField(header[2], DataTypes.StringType, false, Metadata.empty()),
+                new StructField(header[3], DataTypes.DoubleType, false, Metadata.empty())
         });
 
         Dataset<Row> testData = spark.createDataFrame(data, schema);
