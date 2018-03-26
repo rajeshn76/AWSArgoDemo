@@ -86,9 +86,9 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         feTemplateInputs.addArtifact(funcArtifact);
         feTemplate.setInputs(feTemplateInputs);
 
-        Container feContainerDirect = new Container(IMAGE_JAVA, Arrays.asList("bash", "-c"), Collections.singletonList(FE_DIRECT_CMD));
-        feTemplate.setContainer(feContainerDirect);
-        feContainerDirect.setEnv(s3EnvList);
+        Container feContainer = createFEContainer(conf.getFeatureRunner());
+        feTemplate.setContainer(feContainer);
+        feContainer.setEnv(s3EnvList);
         feTemplate.setResources(btResources);
 
 
@@ -158,6 +158,20 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         p.spec.addTemplate(st);
 
         return p;
+    }
+
+    private Container createFEContainer(String runner) {
+        Container c;
+        List<String> bash = Arrays.asList("bash", "-c");
+
+        if(runner.equalsIgnoreCase("FlinkRunner")) {
+            c = new Container(IMAGE_FLINK, bash, Collections.singletonList(FE_FLINK_CMD));
+//        } else if(runner.equalsIgnoreCase("SparkRunner")) {
+//            c = new Container(IMAGE_JAVA, bash, Collections.singletonList(MT_SPARK_CMD));
+        } else {  // DirectRunner
+            c = new Container(IMAGE_JAVA, bash, Collections.singletonList(FE_DIRECT_CMD));
+        }
+        return c;
     }
 
     private Container createMTContainer(String runner) {

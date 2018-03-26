@@ -7,18 +7,23 @@ public interface TemplateConstants {
             "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " +
             "--funcName={{inputs.parameters.func-name}}";
 
+    String FE_FLINK_CMD = "cp /feature-engineering.jar lib/feature-engineering.jar && " +
+            "bin/start-local.sh && flink run /pipeline.jar --runner=FlinkRunner --inputFile={{inputs.parameters.input-path}} " +
+            "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
+            "--awsRegion=us-east-1 --funcName={{inputs.parameters.func-name}}";
+
     String MT_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
             + "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
             "--awsRegion=us-east-1";
 
-    String MT_FLINK_CMD = "bin/start-local.sh && flink run pipeline.jar --runner=FlinkRunner "
+    String MT_FLINK_CMD = "bin/start-local.sh && flink run /pipeline.jar --runner=FlinkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
             + "--outputFile={{inputs.parameters.output-path}} "
             + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
     String MT_SPARK_CMD = "wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' "
             + "&& tar -xf spark.tgz && cd spark-2.2.1-bin-hadoop2.7 &&  "
-            + "bin/spark-submit --master local[2] pipeline.jar --runner=SparkRunner "
+            + "bin/spark-submit --master local[2] /pipeline.jar --runner=SparkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
             + "--outputFile={{inputs.parameters.output-path}} "
             + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
