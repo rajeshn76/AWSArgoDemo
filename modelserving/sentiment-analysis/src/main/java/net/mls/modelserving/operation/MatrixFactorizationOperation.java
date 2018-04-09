@@ -64,10 +64,6 @@ public class MatrixFactorizationOperation implements Function<String,  List<Movi
 
         model = MatrixFactorizationModel.load(sc, path);
 
-//                "/Users/char/Desktop/flow-new");
-                //"s3://argo-flow/models/recommender-engine-new");
-        //"/Users/char/Downloads/u.item"
-
 
         String moviesPath = String.format("s3://%s/%s", bucket, movieNamesPath);
         pairRDD = sc.textFile(moviesPath, 2).toJavaRDD()
