@@ -10,6 +10,10 @@ s3:
   outputFile: model/lreg-direct.zip
   columns: text,afterRelease,hour,label
 
+tf:
+  modelLocation: http://dl.bintray.com/big-data/generic/minimal_graph.proto
+  outputName: output/Softmax
+  vocabLocation: http://dl.bintray.com/big-data/generic/vocab.csv
 
 spring:
   application:

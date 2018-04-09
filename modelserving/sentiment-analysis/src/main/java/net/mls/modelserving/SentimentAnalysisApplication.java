@@ -1,5 +1,6 @@
 package net.mls.modelserving;
 
+import net.mls.modelserving.util.WordVocabulary;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,11 @@ import org.springframework.web.client.RestTemplate;
 public class SentimentAnalysisApplication {
 
     @Bean
+    public WordVocabulary wordVocabulary() {
+        return new WordVocabulary();
+    }
+
+    @Bean
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(3000);
@@ -24,6 +30,8 @@ public class SentimentAnalysisApplication {
         RestTemplate restTemplate = new RestTemplate(requestFactory);
         return restTemplate;
     }
+
+
 
     public static void main(String[] args) {
         SpringApplication.run(SentimentAnalysisApplication.class, args);
