@@ -7,11 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Created by char on 2/26/18.
- */
 @RestController
-public class PredictionService {
+public class SentimentAnalysisService {
 
     @Autowired
     private LogisticRegressionOperation op;

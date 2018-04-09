@@ -7,9 +7,14 @@ s3:
   secretKey:
   bucketName:
   endpoint: s3.amazonaws.com
-  outputFile: model/lreg-direct.zip
-  columns: text,afterRelease,hour,label
 
+sentimentAnalysis:
+  model: model/lreg-review-direct.zip
+  columns: review,afterRelease,version,label
+
+recommenderEngine:
+  model: models/recommender-engine-new
+  moviesPath: movielens/100k/u.item
 
 spring:
   application:

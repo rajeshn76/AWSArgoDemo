@@ -12,6 +12,8 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,8 @@ import java.util.function.Function;
 @Service("lreg")
 public class LogisticRegressionOperation implements Function<String, String> {
 
+    Logger LOG = LoggerFactory.getLogger(LogisticRegressionOperation.class);
+
     private SparkSession spark = SparkSession.builder().appName("LogisticRegressionOperation").master("local").getOrCreate();
     private PipelineModel model = null;
 
@@ -36,15 +40,16 @@ public class LogisticRegressionOperation implements Function<String, String> {
     private String endpoint;
     @Value("${s3.bucketName}")
     private String bucketName;
-    @Value("${s3.outputFile}")
-    private String outputFile;
-    @Value("${s3.columns}")
+    @Value("${sentimentAnalysis.model}")
+    private String modelPath;
+    @Value("${sentimentAnalysis.columns}")
     private String columns;
 
     @PostConstruct
     private void init() throws IOException {
+        LOG.info("Reading model from s3 {}, {}, {}", endpoint, bucketName, modelPath);
         S3Client client = new S3Client(accessKey, secretKey, endpoint);
-        File tmpZipFile = client.download(bucketName, outputFile);
+        File tmpZipFile = client.download(bucketName, modelPath);
         String tmpUnzipPath = ZipFile.unpack(tmpZipFile);
         model = PipelineModel.load(tmpUnzipPath);
         tmpZipFile.delete();
