@@ -27,9 +27,10 @@ import org.apache.spark.sql.types.StructType;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 
-public class SentimentAnalysisTraining {
+public class SentimentAnalysisTraining  implements Serializable {
     String featureColumns;
     String output;
     String bucket;
