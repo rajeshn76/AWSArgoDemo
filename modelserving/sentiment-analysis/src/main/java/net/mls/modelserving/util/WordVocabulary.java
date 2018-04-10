@@ -5,6 +5,7 @@ import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,13 +23,14 @@ public class WordVocabulary implements ResourceLoaderAware, AutoCloseable {
     /**
      * This contains the word vocabulary used to train the TensorFlow model.
      */
-    private final ConcurrentHashMap<String, Integer> vocabulary;
+    private ConcurrentHashMap<String, Integer> vocabulary;
 
     public void setResourceLoader(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
 
-    public WordVocabulary() {
+    @PostConstruct
+    private void init() throws IOException {
         try (InputStream vocabularyInputStream = resourceLoader.getResource(vocabLocation).getInputStream()) {
             vocabulary = buildVocabulary(vocabularyInputStream);
         } catch (IOException ex) {

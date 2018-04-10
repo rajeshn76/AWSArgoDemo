@@ -7,13 +7,13 @@ s3:
   secretKey:
   bucketName:
   endpoint: s3.amazonaws.com
-  outputFile: model/lreg-direct.zip
-  columns: text,afterRelease,hour,label
+  outputFile: model/lreg-review-direct.zip
+  columns: review,afterRelease,version,label
 
 tf:
-  modelLocation: http://dl.bintray.com/big-data/generic/minimal_graph.proto
+  modelLocation: classpath:tensorflow/model/minimal_graph.proto
   outputName: output/Softmax
-  vocabLocation: http://dl.bintray.com/big-data/generic/vocab.csv
+  vocabLocation: classpath:tensorflow/vocab.csv
 
 spring:
   application:
