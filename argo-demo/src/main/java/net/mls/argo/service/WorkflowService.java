@@ -3,6 +3,8 @@ package net.mls.argo.service;
 import net.mls.argo.operation.MLWorkflowOperation;
 import net.mls.argo.operation.SentimentAnalysisWorkflowOperation;
 import net.mls.argo.WorkflowConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class WorkflowService {
 
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkflowService.class);
     @Autowired
     private WorkflowConfig config;
 
@@ -28,6 +32,7 @@ public class WorkflowService {
 
     @RequestMapping(value = "wf", method = RequestMethod.POST)
     public void executeWF(@RequestBody String modelType) throws Exception {
+        LOG.info("Creating workflow for "+modelType);
         if(modelType.equalsIgnoreCase("recommender")) {
             WorkflowConfig wc = new WorkflowConfig("movielens/100k/u.data",
                     "RatingsDataModel-direct.csv", "user,product,rating",
