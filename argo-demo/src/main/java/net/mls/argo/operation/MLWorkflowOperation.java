@@ -1,6 +1,6 @@
 package net.mls.argo.operation;
 
-import net.mls.argo.template.SentimentAnalysisWorkflow;
+import net.mls.argo.template.MLWorkflow;
 import net.mls.argo.template.WorkflowSpec;
 import net.mls.argo.util.ShellCommandExecutor;
 import net.mls.argo.WorkflowConfig;
@@ -18,11 +18,11 @@ import java.util.function.Function;
 @Service("mlwfop")
 public class MLWorkflowOperation implements Function<WorkflowConfig, Boolean> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SentimentAnalysisWorkflowOperation.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MLWorkflowOperation.class);
 
     public Boolean apply(WorkflowConfig config) {
         try {
-            WorkflowSpec p = new SentimentAnalysisWorkflow().create(config);
+            WorkflowSpec p = new MLWorkflow().create(config);
             String p_yaml = YAMLGenerator.asYaml(p);
 
             String tmpFileName = RandomStringUtils.randomAlphanumeric(8);
