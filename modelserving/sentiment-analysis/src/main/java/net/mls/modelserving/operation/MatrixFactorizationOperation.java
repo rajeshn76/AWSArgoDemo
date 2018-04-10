@@ -54,18 +54,18 @@ public class MatrixFactorizationOperation implements Function<String,  List<Movi
                 .config("spark.testing.memory", "471859200")
                 .getOrCreate().sparkContext();
 
-        sc.hadoopConfiguration().set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem");
-        sc.hadoopConfiguration().set("fs.s3.awsAccessKeyId",accessKey);
-        sc.hadoopConfiguration().set("fs.s3.awsSecretAccessKey",secretKey);
+        sc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem");
+        sc.hadoopConfiguration().set("fs.s3a.awsAccessKeyId",accessKey);
+        sc.hadoopConfiguration().set("fs.s3a.awsSecretAccessKey",secretKey);
 
-        String path = String.format("s3://%s/%s", bucket, modelPath);
+        String path = String.format("s3a://%s/%s", bucket, modelPath);
 
         LOG.info("Reading matrix factorization model from s3 {}", path);
 
         model = MatrixFactorizationModel.load(sc, path);
 
 
-        String moviesPath = String.format("s3://%s/%s", bucket, movieNamesPath);
+        String moviesPath = String.format("s3a://%s/%s", bucket, movieNamesPath);
         pairRDD = sc.textFile(moviesPath, 2).toJavaRDD()
             .map(line -> line.split("\\|"))
             .mapToPair(arr -> new Tuple2(Integer.parseInt(arr[0]), arr[1]));
