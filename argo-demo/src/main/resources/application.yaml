@@ -1,6 +1,6 @@
 ---
 featureEngineering:
-  featureJar: "jars/v2/feature-pipeline-direct.jar"
+  featureJar: "jars/v-rec/feature-pipeline-direct.jar"
   dataPath: "app-reviews-partial.csv"
   featuresPath: "ReviewDataModel-direct.csv"
   columns: "review,afterRelease,version,label"
@@ -8,20 +8,20 @@ featureEngineering:
   funcName: "net.mls.features.sentiment.ProcessReviewFn"
   runner: "DirectRunner"
 
-
 modelTraining:
-  learningJar: "jars/v2/learning-pipeline-direct.jar"
+  learningJar: "jars/v-rec/learning-pipeline-direct.jar"
   modelPath: "model/lreg-review-direct.zip"
   runner: "DirectRunner"
 
 modelServing:
-  modelJar: "jars/v2/model-serving.jar"
-  kubeWfName: "model-endpoint-"
+  modelJar: "jars/v-rec/model-serving.jar"
+  kubeWfName: "model-sa-endpoint-"
 
 buildPush:
   dockerRepo: "pqchat"
   dockerImage: "model-serving"
-  dockerVersion: "v4"
+  dockerVersion: "v1"
 
 s3Endpoint: "s3.amazonaws.com"
 s3Bucket: "argo-flow"
+modelType: "sentiment"

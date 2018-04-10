@@ -14,23 +14,26 @@ public interface TemplateConstants {
 
     String MT_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
             + "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
-            "--awsRegion=us-east-1";
+            "--modelType={{inputs.parameters.model-type}} --awsRegion=us-east-1";
 
     String MT_FLINK_CMD = "bin/start-local.sh && flink run /pipeline.jar --runner=FlinkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} "
+            + "--outputFile={{inputs.parameters.output-path}} --modelType={{inputs.parameters.model-type}} "
             + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
     String MT_SPARK_CMD = "wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' "
             + "&& tar -xf spark.tgz && cd spark-2.2.1-bin-hadoop2.7 &&  "
             + "bin/spark-submit --master local[2] /pipeline.jar --runner=SparkRunner "
             + "--inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} "
+            + "--outputFile={{inputs.parameters.output-path}} --modelType={{inputs.parameters.model-type}} "
             + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
-    String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; " +
+    String BUILD_PUSH_SA_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; " +
             "./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.feature-columns}} {{inputs.parameters.docker-repo}} " +
             "{{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
+    String BUILD_PUSH_RE_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap-recommender.sh ;" +
+            " ./wrap-recommender.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} " +
+            "{{inputs.parameters.docker-version}}";
 
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";
@@ -44,6 +47,7 @@ public interface TemplateConstants {
     String FE_JAR_PARAM = "feature-engineering-jar";
     String FUNC_PARAM = "func-name";
     String MODEL_PARAM = "model";
+    String MODEL_TYPE_PARAM = "model-type";
     String JAR_ART = "jar-artifact";
     String FUNC_ART = "fe-artifact";
     String DOCKER_REPO_PARAM = "docker-repo";

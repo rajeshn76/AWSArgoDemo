@@ -52,6 +52,9 @@ public class WorkflowConfig {
     @Value("${s3Bucket}")
     private String s3Bucket;
 
+    @Value("${modelType}")
+    private String modelType;
+
     public String getFeatureJar() {
         return featureJar;
     }
@@ -120,6 +123,25 @@ public class WorkflowConfig {
         return trainingRunner;
     }
 
+    public String getModelType() {
+        return modelType;
+    }
+
+    public WorkflowConfig() {
+
+    }
+    public WorkflowConfig(String dataPath, String featuresPath, String columns, String funcName,
+                          String modelPath, String kubeWfName, String dockerVersion, String modelType) {
+        this.dataPath = dataPath;
+        this.featuresPath = featuresPath;
+        this.columns = columns;
+        this.funcName = funcName;
+        this.modelPath = modelPath;
+        this.kubeWfName = kubeWfName;
+        this.dockerVersion = dockerVersion;
+        this.modelType = modelType;
+    }
+
     public WorkflowConfig mergeWith(WorkflowConfig wc) {
         if (wc != null) {
             wc.featureJar = wc.featureJar != null ? wc.featureJar : this.featureJar;
@@ -137,6 +159,7 @@ public class WorkflowConfig {
             wc.kubeWfName = wc.kubeWfName != null ? wc.kubeWfName : this.kubeWfName;
             wc.s3Endpoint = wc.s3Endpoint != null ? wc.s3Endpoint : this.s3Endpoint;
             wc.s3Bucket = wc.s3Bucket != null ? wc.s3Bucket : this.s3Bucket;
+            wc.modelType = wc.modelType != null ? wc.modelType : this.modelType;
             wc.featureRunner = wc.featureRunner != null ? wc.featureRunner : this.featureRunner;;
             wc.trainingRunner = wc.trainingRunner != null ? wc.trainingRunner : this.trainingRunner;;
         }
