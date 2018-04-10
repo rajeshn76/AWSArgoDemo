@@ -19,4 +19,9 @@ public interface MLSPipelinesOptions extends S3Options {
     String getFuncName();
     void setFuncName(String value);
 
+    String getModelType();
+    void setModelType(String value);
+
+
+
 }

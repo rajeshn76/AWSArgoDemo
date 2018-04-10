@@ -4,30 +4,16 @@ import com.google.common.collect.Lists;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import net.mls.pipeline.common.util.MLSPipelinesOptions;
-import net.mls.pipeline.common.util.S3Client;
-import net.mls.pipeline.learning.util.ZipFile;
+import net.mls.pipeline.learning.recommender.RecommenderEngine;
+import net.mls.pipeline.learning.sentimentanalysis.SentimentAnalysisTraining;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.Filter;
-import org.apache.beam.sdk.transforms.GroupByKey;
-import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.values.KV;
-import org.apache.spark.ml.PipelineModel;
-import org.apache.spark.ml.PipelineStage;
-import org.apache.spark.ml.classification.LogisticRegression;
-import org.apache.spark.ml.feature.HashingTF;
-import org.apache.spark.ml.feature.IDF;
-import org.apache.spark.ml.feature.Tokenizer;
-import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,13 +39,14 @@ public class LearningPipeline {
 
         String featureColumns = Optional.ofNullable(options.getFeatureColumns())
                 .orElseGet(() -> conf.getString("columns.input"));
+        String modelType = Optional.ofNullable(options.getModelType())
+                .orElseGet(() -> conf.getString("modelType"));
 
-        p.apply(TextIO.read().from("s3://"+bucket+"/"+inputFile))
+        String  inputPath = "s3://"+bucket+"/"+inputFile;
+        System.out.println("Reading from s3: " +inputPath);
+        p.apply(TextIO.read().from(inputPath))
                 .apply(Filter.by(x -> !x.equals(featureColumns)))
-                .apply(ParDo.of(new RowProcessFn()))
-                .apply(GroupByKey.create())
-                .apply(ParDo.of(new AggregateRowFn()))
-                .apply(ParDo.of(new LogisticRegressionFn(featureColumns, output, bucket)));
+                .apply(getModelTrainingClass(modelType, featureColumns, output));
 
         try {
             p.run().waitUntilFinish();
@@ -70,82 +57,24 @@ public class LearningPipeline {
 
     }
 
-    static class AggregateRowFn extends DoFn<KV<String, Iterable<Row>>, List<Row>>{
+    private static PTransform getModelTrainingClass(String str, String cols, String output) {
+        if (str.equalsIgnoreCase("sentiment")) {
+            SentimentAnalysisTraining sa = new SentimentAnalysisTraining(cols, output, bucket);
+            return sa.transform();
+        } else if(str.equalsIgnoreCase("recommender")) {
+            String  outputPath = "s3a://"+bucket+"/"+output;
+            RecommenderEngine re = new RecommenderEngine(outputPath, conf.getString("s3Config.accessKey"), conf.getString("s3Config.secretKey"));
+            return re.transform();
+        } else {
+            throw new UnsupportedOperationException("No model for " + str);
+        }
+    }
+
+    public static class AggregateRowFn<T> extends DoFn<KV<String, Iterable<T>>, List<T>>{
         @ProcessElement
         public void processElement(ProcessContext c) throws Exception {
-            Iterable<Row> it = c.element().getValue();
+            Iterable<T> it = c.element().getValue();
             c.output(Lists.newArrayList(it));
         }
     }
-
-    static class RowProcessFn extends DoFn<String, KV<String, Row>>{
-        @ProcessElement
-        public void processElement(ProcessContext c) throws Exception {
-            String[] line = c.element().split(",");
-            Row r = RowFactory.create(line[0], Boolean.parseBoolean(line[1]), line[2], Double.parseDouble(line[3]));
-            c.output(KV.of("Test", r));
-        }
-    }
-
-    static class LogisticRegressionFn extends DoFn<List<Row>, Void>{
-        String featureColumns;
-        String output;
-        String bucket;
-        LogisticRegressionFn(String featureColumns, String output, String bucket) {
-            this.featureColumns=featureColumns;
-            this.output=output;
-            this.bucket=bucket;
-        }
-        @ProcessElement
-        public void processElement(ProcessContext c) throws Exception {
-            //review,afterRelease,version/hour,label
-
-            System.out.println("Feature columns"+featureColumns);
-            String[] header = featureColumns.split(",");
-            StructType schema = new StructType(new StructField[] {
-                    new StructField(header[0], DataTypes.StringType, false, Metadata.empty()),
-                    new StructField(header[1], DataTypes.BooleanType, false, Metadata.empty()),
-                    new StructField(header[2], DataTypes.StringType, false, Metadata.empty()),
-                    new StructField(header[3], DataTypes.DoubleType, false, Metadata.empty())
-            });
-
-            SQLContext spark = SparkSession.builder()
-                    .appName("logisticRegression")
-                    .master("local")
-                    .config("spark.testing.memory", "471859200")
-                    .getOrCreate().sqlContext();
-
-            Dataset<Row> data = spark.createDataFrame(c.element(), schema);
-
-            Tokenizer tokenizer = new Tokenizer().setInputCol(header[0]).setOutputCol("words");
-            HashingTF hashingTF = new HashingTF().setInputCol("words").setOutputCol("rawFeatures")
-                                        .setNumFeatures(1000);
-            IDF idf = new IDF().setInputCol("rawFeatures").setOutputCol("features").setMinDocFreq(10);
-            LogisticRegression lr = new LogisticRegression()
-                                        .setMaxIter(10)
-                                        .setRegParam(0.01);
-
-            org.apache.spark.ml.Pipeline pipeline = new org.apache.spark.ml.Pipeline()
-                    .setStages(new PipelineStage[]{tokenizer, hashingTF, idf, lr});
-
-            PipelineModel toSave = pipeline.fit(data);
-
-            try {
-                String tmp = System.getProperty("java.io.tmpdir") + output.substring(output.lastIndexOf('/'));
-                toSave.write().overwrite().save(tmp);
-                File zipFile = ZipFile.pack(tmp);
-
-
-                S3Client.upload(bucket, output, zipFile);
-                zipFile.delete();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException();
-            }
-
-        }
-    }
-
-
 }
