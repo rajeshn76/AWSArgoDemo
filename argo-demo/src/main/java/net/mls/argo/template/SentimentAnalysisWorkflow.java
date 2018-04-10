@@ -125,7 +125,7 @@ public final class SentimentAnalysisWorkflow implements WorkflowFactory {
         bpInputs.addArtifact(bpJarArtifact);
         bp.setInputs(bpInputs);
 
-        Container bpContainer = new Container(IMAGE_DOCKER, Arrays.asList("sh", "-c"), Collections.singletonList(BUILD_PUSH_CMD));
+        Container bpContainer = new Container(IMAGE_DOCKER, Arrays.asList("sh", "-c"), Collections.singletonList(BUILD_PUSH_SA_CMD));
         Map<String, Secret> userMap = new HashMap<>();
         userMap.put("secretKeyRef", new Secret("docker-credentials", "username"));
         Map<String, Secret> pwMap = new HashMap<>();
