@@ -41,7 +41,8 @@ public class WordVocabulary implements ResourceLoaderAware, AutoCloseable {
     public int[][] vectorizeSentence(String sentence) {
         int[][] vectorizedText = new int[1][128];
         String[] words = clearText(sentence).split(" ");
-        for (int i = 0; i < words.length; i++) {
+        final int MAX_LENGTH = Math.min(words.length, 127);
+        for (int i = 0; i < MAX_LENGTH; i++) {
             Integer v = vocabulary.get(words[i]);
             vectorizedText[0][i] = (v != null) ? v : 0;
         }
