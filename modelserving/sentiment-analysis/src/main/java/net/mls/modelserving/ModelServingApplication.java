@@ -4,16 +4,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-
-//import javax.servlet.*;
 
 @SpringBootApplication
 @ComponentScan("net.mls.modelserving")
-public class SentimentAnalysisApplication {
+public class ModelServingApplication {
 
     @Bean
     public RestTemplate restTemplate() {
@@ -26,12 +22,6 @@ public class SentimentAnalysisApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(SentimentAnalysisApplication.class, args);
+        SpringApplication.run(ModelServingApplication.class, args);
     }
 }
-
-//@Order
-//@Component
-//class ApplicationCORSFilter implements Filter {
-//    public void doFilter()
-//}

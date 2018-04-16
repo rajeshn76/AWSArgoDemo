@@ -128,7 +128,7 @@
                                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <mainClass>net.mls.modelserving.SentimentAnalysisApplication</mainClass>
+                                            <mainClass>net.mls.modelserving.ModelServingApplication</mainClass>
                                         </transformer>
                                     </transformers>
                                 </configuration>
@@ -193,7 +193,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass> net.mls.modelserving.SentimentAnalysisApplication</mainClass>
+                            <mainClass>net.mls.modelserving.ModelServingApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
