@@ -28,12 +28,11 @@ public interface TemplateConstants {
             + "--outputFile={{inputs.parameters.output-path}} --modelType={{inputs.parameters.model-type}} "
             + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
 
-    String BUILD_PUSH_SA_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ; " +
-            "./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.feature-columns}} {{inputs.parameters.docker-repo}} " +
-            "{{inputs.parameters.docker-image}} {{inputs.parameters.docker-version}}";
-    String BUILD_PUSH_RE_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap-recommender.sh ;" +
-            " ./wrap-recommender.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} " +
+    String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
+            " ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} " +
             "{{inputs.parameters.docker-version}}";
+
+    String BP_SA_PARAMS = " {{inputs.parameters.feature-columns}}";
 
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";

@@ -127,6 +127,10 @@ public class WorkflowConfig {
         return modelType;
     }
 
+    public void setModelType(String modelType) {
+        this.modelType = modelType;
+    }
+
     public WorkflowConfig() {
 
     }

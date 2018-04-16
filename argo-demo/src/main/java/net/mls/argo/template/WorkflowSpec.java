@@ -7,7 +7,11 @@ public final class WorkflowSpec {
     public String apiVersion = "argoproj.io/v1alpha1";
     public String kind = "Workflow";
 
-    public Metadata metadata = new Metadata();
+    private Metadata metadata;
+
+    public WorkflowSpec(String generateName) {
+        metadata = new Metadata(generateName);
+    }
 
     public Spec spec = new Spec();
 }

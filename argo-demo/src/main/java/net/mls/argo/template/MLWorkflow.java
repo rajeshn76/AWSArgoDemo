@@ -11,7 +11,7 @@ import static net.mls.argo.template.TemplateConstants.*;
 public final class MLWorkflow implements WorkflowFactory {
 
     public WorkflowSpec create(WorkflowConfig conf) {
-        WorkflowSpec p = new WorkflowSpec();
+        WorkflowSpec p = new WorkflowSpec(conf.getModelType());
 
         Template ft = new Template("feature-training");
 
@@ -38,7 +38,8 @@ public final class MLWorkflow implements WorkflowFactory {
 
         Step buildAndPush = new Step("build-and-push", "build-push");
         Arguments bapArgs = new Arguments();
-        String dockerVersion = conf.getDockerVersion() + RandomStringUtils.randomAlphanumeric(5).toLowerCase();
+        String rand = RandomStringUtils.randomAlphanumeric(5).toLowerCase();
+        String dockerVersion = conf.getDockerVersion() + rand;
         bapArgs.addParameter(new Parameter(JAR_PARAM, conf.getModelJar()));
         bapArgs.addParameter(new Parameter(MODEL_PARAM, conf.getModelPath()));
         bapArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
@@ -51,7 +52,7 @@ public final class MLWorkflow implements WorkflowFactory {
         Step modelServing = new Step("model-serving", "serving-template");
         Arguments msArgs = new Arguments();
         msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()
-                + RandomStringUtils.randomAlphanumeric(5).toLowerCase()));
+                + rand));
         msArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
         msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getDockerImage()));
         msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
@@ -121,14 +122,25 @@ public final class MLWorkflow implements WorkflowFactory {
         bpInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
         bpInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
 
+        String modelType = conf.getModelType();
+        String buildCmd = String.format("%s %s", BUILD_PUSH_CMD, modelType);
+        String branch;
+
+        if(modelType.equalsIgnoreCase("sentiment")) {
+            buildCmd += BP_SA_PARAMS;
+            branch = "sentiment-analysis";
+        } else {
+            branch = "recommender-engine";
+        }
+
         Artifact bpJarArtifact = new Artifact(JAR_ART, "/model-serving.jar", s3);
-        Git git = new Git("https://github.com/venci6/demos.git", "master");
+        Git git = new Git("https://github.com/venci6/demos.git", "model/"+branch);
         Artifact bpGitArtifact = new Artifact("docker-files", "/docker-files", git);
         bpInputs.addArtifact(bpGitArtifact);
         bpInputs.addArtifact(bpJarArtifact);
         bp.setInputs(bpInputs);
 
-        String buildCmd = conf.getModelType().equalsIgnoreCase("sentiment") ? BUILD_PUSH_SA_CMD : BUILD_PUSH_RE_CMD;
+
         Container bpContainer = new Container(IMAGE_DOCKER, Arrays.asList("sh", "-c"), Collections.singletonList(buildCmd));
         Map<String, Secret> userMap = new HashMap<>();
         userMap.put("secretKeyRef", new Secret("docker-credentials", "username"));
@@ -170,6 +182,7 @@ public final class MLWorkflow implements WorkflowFactory {
 
         if(runner.equalsIgnoreCase("FlinkRunner")) {
             c = new Container(IMAGE_FLINK, bash, Collections.singletonList(FE_FLINK_CMD));
+            // TODO spark runner for FE
 //        } else if(runner.equalsIgnoreCase("SparkRunner")) {
 //            c = new Container(IMAGE_JAVA, bash, Collections.singletonList(MT_SPARK_CMD));
         } else {  // DirectRunner
