@@ -39,7 +39,10 @@ public class MatrixFactorizationOperation implements Function<String,  List<Movi
     private String modelPath;
     @Value("${recommenderEngine.moviesPath}")
     private String movieNamesPath;
-
+    @Value("${recommenderEngine.count}")
+    private int count;
+    @Value("${modelType}")
+    private String modelType;
 
     private MatrixFactorizationModel model;
     private Map<Integer, String> productNames;
@@ -48,29 +51,33 @@ public class MatrixFactorizationOperation implements Function<String,  List<Movi
 
     @PostConstruct
     private void init() throws IOException {
-        sc = SparkSession.builder()
-                .appName("matrixFactorization")
-                .master("local")
-                .config("spark.testing.memory", "471859200")
-                .getOrCreate().sparkContext();
+        if(modelType.equalsIgnoreCase("recommender")) {
+            LOG.info("Initializing MatrixFactorization Model");
 
-        sc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem");
-        sc.hadoopConfiguration().set("fs.s3a.awsAccessKeyId",accessKey);
-        sc.hadoopConfiguration().set("fs.s3a.awsSecretAccessKey",secretKey);
+            sc = SparkSession.builder()
+                    .appName("matrixFactorization")
+                    .master("local")
+                    .config("spark.testing.memory", "471859200")
+                    .getOrCreate().sparkContext();
 
-        String path = String.format("s3a://%s/%s", bucket, modelPath);
+            sc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem");
+            sc.hadoopConfiguration().set("fs.s3a.awsAccessKeyId", accessKey);
+            sc.hadoopConfiguration().set("fs.s3a.awsSecretAccessKey", secretKey);
 
-        LOG.info("Reading matrix factorization model from s3 {}", path);
+            String path = String.format("s3a://%s/%s", bucket, modelPath);
+            LOG.info("Reading matrix factorization model from s3 {}", path);
 
-        model = MatrixFactorizationModel.load(sc, path);
+            model = MatrixFactorizationModel.load(sc, path);
 
+            String moviesPath = String.format("s3a://%s/%s", bucket, movieNamesPath);
+            LOG.info("Reading movies from s3 {}", moviesPath);
 
-        String moviesPath = String.format("s3a://%s/%s", bucket, movieNamesPath);
-        pairRDD = sc.textFile(moviesPath, 2).toJavaRDD()
-            .map(line -> line.split("\\|"))
-            .mapToPair(arr -> new Tuple2(Integer.parseInt(arr[0]), arr[1]));
+            pairRDD = sc.textFile(moviesPath, 2).toJavaRDD()
+                    .map(line -> line.split("\\|"))
+                    .mapToPair(arr -> new Tuple2(Integer.parseInt(arr[0]), arr[1]));
 
-        productNames = pairRDD.collectAsMap();
+            productNames = pairRDD.collectAsMap();
+        }
     }
     @Override
     public List<MovieView> apply(String userId) {
@@ -87,7 +94,7 @@ public class MatrixFactorizationOperation implements Function<String,  List<Movi
 
         modifiable.sort(Comparator.comparing(Rating::rating).reversed());
 
-        List<Rating> recommendations = modifiable.subList(0, 10);
+        List<Rating> recommendations = modifiable.subList(0, count);
 
         return  recommendations.stream().map(r -> new MovieView(productNames.get(r.product()), r.rating())).collect(Collectors.toList());
     }

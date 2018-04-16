@@ -29,7 +29,7 @@ public class LogisticRegressionOperation implements Function<String, String> {
 
     Logger LOG = LoggerFactory.getLogger(LogisticRegressionOperation.class);
 
-    private SparkSession spark = SparkSession.builder().appName("LogisticRegressionOperation").master("local").getOrCreate();
+    private SparkSession spark;
     private PipelineModel model = null;
 
     @Value("${s3.accessKey}")
@@ -44,15 +44,25 @@ public class LogisticRegressionOperation implements Function<String, String> {
     private String modelPath;
     @Value("${sentimentAnalysis.columns}")
     private String columns;
+    @Value("${modelType}")
+    private String modelType;
 
     @PostConstruct
     private void init() throws IOException {
-        LOG.info("Reading model from s3 {}, {}, {}", endpoint, bucketName, modelPath);
-        S3Client client = new S3Client(accessKey, secretKey, endpoint);
-        File tmpZipFile = client.download(bucketName, modelPath);
-        String tmpUnzipPath = ZipFile.unpack(tmpZipFile);
-        model = PipelineModel.load(tmpUnzipPath);
-        tmpZipFile.delete();
+        if(modelType.equalsIgnoreCase("sentiment")) {
+            LOG.info("Initializing LogReg Model");
+
+            spark =  SparkSession.builder()
+                    .appName("LogisticRegressionOperation")
+                    .master("local").getOrCreate();
+
+            LOG.info("Reading model from s3 {}, {}, {}", endpoint, bucketName, modelPath);
+            S3Client client = new S3Client(accessKey, secretKey, endpoint);
+            File tmpZipFile = client.download(bucketName, modelPath);
+            String tmpUnzipPath = ZipFile.unpack(tmpZipFile);
+            model = PipelineModel.load(tmpUnzipPath);
+            tmpZipFile.delete();
+        }
     }
     public String apply(String review) {
         List<Row> data = Collections.singletonList(RowFactory.create(review, false, "0", 0.0));
