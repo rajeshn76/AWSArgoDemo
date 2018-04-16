@@ -13,15 +13,17 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.values.KV;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 public class LearningPipeline {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LearningPipeline.class);
     private static Config conf = ConfigFactory.load();
-
-
-    static String bucket;
+    private static String bucket;
 
     public static void main(String[] args) {
         MLSPipelinesOptions options = PipelineOptionsFactory.fromArgs(args)
@@ -31,9 +33,9 @@ public class LearningPipeline {
         Pipeline p = Pipeline.create(options);
 
         bucket = Optional.ofNullable(options.getBucket())
-                                .orElseGet(() -> conf.getString("s3.bucket"));
+                .orElseGet(() -> conf.getString("s3.bucket"));
         String inputFile = Optional.ofNullable(options.getInputFile())
-                                    .orElseGet(() -> conf.getString("s3.inputFile"));
+                .orElseGet(() -> conf.getString("s3.inputFile"));
         String output = Optional.ofNullable(options.getOutputFile())
                 .orElseGet(() -> conf.getString("s3.outputFile"));
 
@@ -42,8 +44,8 @@ public class LearningPipeline {
         String modelType = Optional.ofNullable(options.getModelType())
                 .orElseGet(() -> conf.getString("modelType"));
 
-        String  inputPath = "s3://"+bucket+"/"+inputFile;
-        System.out.println("Reading from s3: " +inputPath);
+        String inputPath = "s3://" + bucket + "/" + inputFile;
+        LOG.info("Reading data model from {}", inputPath);
         p.apply(TextIO.read().from(inputPath))
                 .apply(Filter.by(x -> !x.equals(featureColumns)))
                 .apply(getModelTrainingClass(modelType, featureColumns, output));
@@ -53,16 +55,15 @@ public class LearningPipeline {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
     private static PTransform getModelTrainingClass(String str, String cols, String output) {
+        LOG.info("Outputting model to {}/{}", bucket, output);
         if (str.equalsIgnoreCase("sentiment")) {
             SentimentAnalysisTraining sa = new SentimentAnalysisTraining(cols, output, bucket);
             return sa.transform();
-        } else if(str.equalsIgnoreCase("recommender")) {
-            String  outputPath = "s3a://"+bucket+"/"+output;
+        } else if (str.equalsIgnoreCase("recommender")) {
+            String outputPath = "s3a://" + bucket + "/" + output;
             RecommenderEngine re = new RecommenderEngine(outputPath, conf.getString("s3Config.accessKey"), conf.getString("s3Config.secretKey"));
             return re.transform();
         } else {
@@ -70,7 +71,7 @@ public class LearningPipeline {
         }
     }
 
-    public static class AggregateRowFn<T> extends DoFn<KV<String, Iterable<T>>, List<T>>{
+    public static class AggregateRowFn<T> extends DoFn<KV<String, Iterable<T>>, List<T>> {
         @ProcessElement
         public void processElement(ProcessContext c) throws Exception {
             Iterable<T> it = c.element().getValue();
