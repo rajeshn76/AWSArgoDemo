@@ -16,6 +16,10 @@ modelTraining:
 modelServing:
   modelJar: "jars/v-rec/model-serving.jar"
   kubeWfName: "model-sa-endpoint-"
+  enablePerformanceCollector: true
+  performanceJar: "jars/v-serving/performance-collector.jar"
+  enableABTesting: true
+  abJar: "jars/v-serving/ab-service.jar"
 
 buildPush:
   dockerRepo: "pqchat"

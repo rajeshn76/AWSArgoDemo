@@ -38,6 +38,14 @@ public class WorkflowConfig {
     private String modelJar;
     @Value("${modelServing.kubeWfName}")
     private String kubeWfName;
+    @Value("${modelServing.enablePerformanceCollector}")
+    private Boolean enablePerformanceCollector;
+    @Value("${modelServing.performanceJar}")
+    private String performanceJar;
+    @Value("${modelServing.enableABTesting}")
+    private Boolean enableABTesting;
+    @Value("${modelServing.abJar}")
+    private String abJar;
 
     @Value("${buildPush.dockerRepo}")
     private String dockerRepo;

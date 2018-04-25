@@ -2,37 +2,39 @@ package net.mls.argo.template;
 
 public interface TemplateConstants {
 
-    String FE_DIRECT_CMD = "java -cp pipeline.jar:feature-engineering.jar:* net.mls.pipeline.feature.FeaturePipeline " +
-            "--inputFile={{inputs.parameters.input-path}} --outputFile={{inputs.parameters.output-path}} " +
-            "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " +
+    String FE_CMD_ARGS = "--inputFile={{inputs.parameters.input-path}} --outputFile={{workflow.parameters.features-path}} " +
+            "--featureColumns={{workflow.parameters.feature-columns}} --awsRegion=us-east-1 " +
             "--funcName={{inputs.parameters.func-name}}";
 
-    String FE_FLINK_CMD = "cp /feature-engineering.jar lib/feature-engineering.jar && " +
-            "bin/start-local.sh && flink run /pipeline.jar --runner=FlinkRunner --inputFile={{inputs.parameters.input-path}} " +
-            "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
-            "--awsRegion=us-east-1 --funcName={{inputs.parameters.func-name}}";
+    String FE_DIRECT_CMD = "java -cp pipeline.jar:feature-engineering.jar:* net.mls.pipeline.feature.FeaturePipeline " + FE_CMD_ARGS;
 
-    String MT_DIRECT_CMD = "java -jar pipeline.jar --inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} --featureColumns={{inputs.parameters.feature-columns}} " +
-            "--modelType={{inputs.parameters.model-type}} --awsRegion=us-east-1";
+    String FE_FLINK_CMD = "cp /feature-engineering.jar lib/feature-engineering.jar && " +
+            "bin/start-local.sh && flink run /pipeline.jar --runner=FlinkRunner " + FE_CMD_ARGS;
+
+
+    String MT_CMD_ARGS = "--inputFile={{workflow.parameters.features-path}} "
+            + "--outputFile={{workflow.parameters.model-path}} --modelType={{workflow.parameters.model-type}} "
+            + "--featureColumns={{workflow.parameters.feature-columns}} --awsRegion=us-east-1 " ;
+
+    String MT_DIRECT_CMD = "java -jar pipeline.jar " + MT_CMD_ARGS;
 
     String MT_FLINK_CMD = "bin/start-local.sh && flink run /pipeline.jar --runner=FlinkRunner "
-            + "--inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} --modelType={{inputs.parameters.model-type}} "
-            + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
+            + MT_CMD_ARGS;
 
     String MT_SPARK_CMD = "wget -nv -O spark.tgz 'http://ftp.wayne.edu/apache/spark/spark-2.2.1/spark-2.2.1-bin-hadoop2.7.tgz' "
             + "&& tar -xf spark.tgz && cd spark-2.2.1-bin-hadoop2.7 &&  "
             + "bin/spark-submit --master local[2] /pipeline.jar --runner=SparkRunner "
-            + "--inputFile={{inputs.parameters.input-path}} "
-            + "--outputFile={{inputs.parameters.output-path}} --modelType={{inputs.parameters.model-type}} "
-            + "--featureColumns={{inputs.parameters.feature-columns}} --awsRegion=us-east-1 " ;
+            + MT_CMD_ARGS;
 
-    String BUILD_PUSH_CMD = "cp model-serving.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
-            " ./wrap.sh {{inputs.parameters.model}} {{inputs.parameters.docker-repo}} {{inputs.parameters.docker-image}} " +
-            "{{inputs.parameters.docker-version}}";
 
-    String BP_SA_PARAMS = " {{inputs.parameters.feature-columns}}";
+    String BUILD_PUSH_CMD = "cp app.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
+            " ./wrap.sh {{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} " +
+            "{{workflow.parameters.docker-version}}";
+
+    String BUILD_PUSH_STATS_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh " +
+            "{{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} {{workflow.parameters.docker-version}}";
+
+    String BP_SA_PARAMS = " {{workflow.parameters.feature-columns}}";
 
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";
@@ -40,12 +42,13 @@ public interface TemplateConstants {
     String IMAGE_DIND = "docker:17.10-dind";
 
     String JAR_PARAM = "jar";
+    String FEATURES_PARAM = "features-path";
+    String MODEL_PATH = "model-path";
+
     String INPUT_PARAM = "input-path";
-    String OUTPUT_PARAM = "output-path";
     String COLUMNS_PARAM = "feature-columns";
     String FE_JAR_PARAM = "feature-engineering-jar";
     String FUNC_PARAM = "func-name";
-    String MODEL_PARAM = "model";
     String MODEL_TYPE_PARAM = "model-type";
     String JAR_ART = "jar-artifact";
     String FUNC_ART = "fe-artifact";
@@ -89,7 +92,7 @@ public interface TemplateConstants {
             "    spec:\n" +
             "      containers:\n" +
             "      - name: {{inputs.parameters.wf-name}}\n" +
-            "        image: {{inputs.parameters.docker-repo}}/{{inputs.parameters.docker-image}}:{{inputs.parameters.docker-version}}\n" +
+            "        image: {{workflow.parameters.docker-repo}}/{{workflow.parameters.docker-image}}:{{workflow.parameters.docker-version}}\n" +
             "        ports:\n" +
             "        - containerPort: 8080";
 

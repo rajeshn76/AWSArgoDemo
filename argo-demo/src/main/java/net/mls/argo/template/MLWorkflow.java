@@ -11,7 +11,22 @@ import static net.mls.argo.template.TemplateConstants.*;
 public final class MLWorkflow implements WorkflowFactory {
 
     public WorkflowSpec create(WorkflowConfig conf) {
+        String rand = RandomStringUtils.randomAlphanumeric(5).toLowerCase();
+        String dockerVersion = conf.getDockerVersion() + rand;
+
+
         WorkflowSpec p = new WorkflowSpec(conf.getModelType());
+        Spec spec = new Spec("feature-training");
+        Arguments globalArgs = new Arguments();
+        globalArgs.addParameter(new Parameter(FEATURES_PARAM, conf.getFeaturesPath()));
+        globalArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
+        globalArgs.addParameter(new Parameter(MODEL_PATH, conf.getModelPath()));
+        globalArgs.addParameter(new Parameter(MODEL_TYPE_PARAM, conf.getModelType()));
+        globalArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
+        globalArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getDockerImage()));
+        globalArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
+        spec.setArguments(globalArgs);
+        p.setSpec(spec);
 
         Template ft = new Template("feature-training");
 
@@ -19,8 +34,6 @@ public final class MLWorkflow implements WorkflowFactory {
         Arguments feArgs = new Arguments();
         feArgs.addParameter(new Parameter(JAR_PARAM, conf.getFeatureJar()));
         feArgs.addParameter(new Parameter(INPUT_PARAM, conf.getDataPath()));
-        feArgs.addParameter(new Parameter(OUTPUT_PARAM, conf.getFeaturesPath()));
-        feArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
         feArgs.addParameter(new Parameter(FE_JAR_PARAM, conf.getFuncJar()));
         feArgs.addParameter(new Parameter(FUNC_PARAM, conf.getFuncName()));
         featureEngineering.setArguments(feArgs);
@@ -29,23 +42,12 @@ public final class MLWorkflow implements WorkflowFactory {
         Step modelTraining = new Step("model-training", "mt-template");
         Arguments mtArgs = new Arguments();
         mtArgs.addParameter(new Parameter(JAR_PARAM, conf.getLearningJar()));
-        mtArgs.addParameter(new Parameter(INPUT_PARAM, conf.getFeaturesPath()));
-        mtArgs.addParameter(new Parameter(OUTPUT_PARAM, conf.getModelPath()));
-        mtArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
-        mtArgs.addParameter(new Parameter(MODEL_TYPE_PARAM, conf.getModelType()));
         modelTraining.setArguments(mtArgs);
         ft.addStep(modelTraining);
 
         Step buildAndPush = new Step("build-and-push", "build-push");
         Arguments bapArgs = new Arguments();
-        String rand = RandomStringUtils.randomAlphanumeric(5).toLowerCase();
-        String dockerVersion = conf.getDockerVersion() + rand;
         bapArgs.addParameter(new Parameter(JAR_PARAM, conf.getModelJar()));
-        bapArgs.addParameter(new Parameter(MODEL_PARAM, conf.getModelPath()));
-        bapArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
-        bapArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
-        bapArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getDockerImage()));
-        bapArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
         buildAndPush.setArguments(bapArgs);
         ft.addStep(buildAndPush);
 
@@ -53,9 +55,6 @@ public final class MLWorkflow implements WorkflowFactory {
         Arguments msArgs = new Arguments();
         msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()
                 + rand));
-        msArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
-        msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getDockerImage()));
-        msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
         modelServing.setArguments(msArgs);
         ft.addStep(modelServing);
 
@@ -78,8 +77,6 @@ public final class MLWorkflow implements WorkflowFactory {
         Inputs feTemplateInputs = new Inputs();
         feTemplateInputs.addParameter(new Parameter(JAR_PARAM));
         feTemplateInputs.addParameter(new Parameter(INPUT_PARAM));
-        feTemplateInputs.addParameter(new Parameter(OUTPUT_PARAM));
-        feTemplateInputs.addParameter(new Parameter(COLUMNS_PARAM));
         feTemplateInputs.addParameter(new Parameter(FE_JAR_PARAM));
         feTemplateInputs.addParameter(new Parameter(FUNC_PARAM));
 
@@ -98,11 +95,6 @@ public final class MLWorkflow implements WorkflowFactory {
         Template mtTemplate = new Template("mt-template");
         Inputs mtTemplateInputs = new Inputs();
         mtTemplateInputs.addParameter(new Parameter(JAR_PARAM));
-        mtTemplateInputs.addParameter(new Parameter(INPUT_PARAM));
-        mtTemplateInputs.addParameter(new Parameter(OUTPUT_PARAM));
-        mtTemplateInputs.addParameter(new Parameter(COLUMNS_PARAM));
-        mtTemplateInputs.addParameter(new Parameter(MODEL_TYPE_PARAM));
-
         mtTemplateInputs.addArtifact(pipelineArtifact);
         mtTemplate.setInputs(mtTemplateInputs);
 
@@ -116,11 +108,6 @@ public final class MLWorkflow implements WorkflowFactory {
         Template bp = new Template("build-push");
         Inputs bpInputs = new Inputs();
         bpInputs.addParameter(new Parameter(JAR_PARAM));
-        bpInputs.addParameter(new Parameter(MODEL_PARAM));
-        bpInputs.addParameter(new Parameter(COLUMNS_PARAM));
-        bpInputs.addParameter(new Parameter(DOCKER_REPO_PARAM));
-        bpInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
-        bpInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
 
         String modelType = conf.getModelType();
         String buildCmd = String.format("%s %s", BUILD_PUSH_CMD, modelType);
@@ -133,7 +120,7 @@ public final class MLWorkflow implements WorkflowFactory {
             branch = "recommender-engine";
         }
 
-        Artifact bpJarArtifact = new Artifact(JAR_ART, "/model-serving.jar", s3);
+        Artifact bpJarArtifact = new Artifact(JAR_ART, "/app.jar", s3);
         Git git = new Git("https://github.com/venci6/demos.git", "model/"+branch);
         Artifact bpGitArtifact = new Artifact("docker-files", "/docker-files", git);
         bpInputs.addArtifact(bpGitArtifact);
@@ -159,9 +146,6 @@ public final class MLWorkflow implements WorkflowFactory {
         Template st = new Template("serving-template");
         Inputs stInputs = new Inputs();
         stInputs.addParameter(new Parameter(KUBE_PARAM));
-        stInputs.addParameter(new Parameter(DOCKER_REPO_PARAM));
-        stInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
-        stInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
         st.setInputs(stInputs);
 
         Resource r = new Resource("create", KUBE_MANIFEST);
