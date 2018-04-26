@@ -29,7 +29,7 @@ public interface TemplateConstants {
 
     String BUILD_PUSH_CMD = "cp app.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
             " ./wrap.sh {{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} " +
-            "{{workflow.parameters.docker-version}}";
+            "{{workflow.parameters.docker-version}} {{workflow.parameters.model-type}}";
 
     String BUILD_PUSH_STATS_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh " +
             "{{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} {{workflow.parameters.docker-version}}";
