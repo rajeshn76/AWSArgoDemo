@@ -1,5 +1,6 @@
 package net.mls.argo.template;
 
+import com.google.common.collect.ImmutableMap;
 import net.mls.argo.WorkflowConfig;
 import net.mls.argo.template.structure.*;
 import org.apache.commons.lang.RandomStringUtils;
@@ -23,7 +24,6 @@ public final class MLWorkflow implements WorkflowFactory {
         globalArgs.addParameter(new Parameter(MODEL_PATH, conf.getModelPath()));
         globalArgs.addParameter(new Parameter(MODEL_TYPE_PARAM, conf.getModelType()));
         globalArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
-        globalArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, conf.getDockerImage()));
         globalArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
         spec.setArguments(globalArgs);
         p.setSpec(spec);
@@ -45,18 +45,55 @@ public final class MLWorkflow implements WorkflowFactory {
         modelTraining.setArguments(mtArgs);
         ft.addStep(modelTraining);
 
-        Step buildAndPush = new Step("build-and-push", "build-push");
+
+        String modelType = conf.getModelType();
+        String buildModelCmd = BP_MODEL_PARAMS;
+        String branch;
+
+        if(modelType.equalsIgnoreCase("sentiment")) {
+            buildModelCmd += BP_MODEL_SA_PARAMS;
+            branch = "sentiment-analysis";
+        } else {
+            branch = "recommender-engine";
+        }
+
+
+        Step buildAndPush = new Step("build-and-push", "build-push-template");
         Arguments bapArgs = new Arguments();
-        bapArgs.addParameter(new Parameter(JAR_PARAM, conf.getModelJar()));
+        bapArgs.addParameter(new Parameter(JAR_PARAM, "{{item.jar}}"));
+        bapArgs.addParameter(new Parameter(BRANCH_PARAM, "{{item.git-branch}}"));
+        bapArgs.addParameter(new Parameter(CCMD_PARAM, "{{item.cmd}}"));
         buildAndPush.setArguments(bapArgs);
         ft.addStep(buildAndPush);
 
+        // ''
+        Map<String, String> modelBPMap = ImmutableMap.of("git-branch", "model/"+branch,
+                                                        JAR_PARAM, conf.getModelJar(),
+                                                        "cmd", buildModelCmd);
+        Map<String, String> pcBPmap = ImmutableMap.of("git-branch", "basic",
+                                                        JAR_PARAM, conf.getPerformanceJar(),
+                                                        "cmd", BP_PC_PARAMS);
+
+        Map<String, String> abBPmap = ImmutableMap.of("git-branch", "basic",
+                                                        JAR_PARAM, conf.getAbJar(),
+                                                        "cmd", BP_AB_PARAMS);
+
+        buildAndPush.setItems(Arrays.asList(modelBPMap, pcBPmap, abBPmap));
+
+
         Step modelServing = new Step("model-serving", "serving-template");
         Arguments msArgs = new Arguments();
-        msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()
-                + rand));
+        msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()+"-"
+                + rand+"-{{item.image}}"));
+        msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, "{{item.image}}"));
         modelServing.setArguments(msArgs);
         ft.addStep(modelServing);
+
+        Map<String, String> modelServeMap = ImmutableMap.of("image", "model");
+        Map<String, String> pcServeMap = ImmutableMap.of("image", "performance");
+        Map<String, String> abServeMap = ImmutableMap.of("image", "ab");
+
+        modelServing.setItems(Arrays.asList(modelServeMap, pcServeMap, abServeMap));
 
         // Common between FE & MT
         Secret s3AccessSecret = new Secret("s3-credentials", "accessKey");
@@ -105,30 +142,21 @@ public final class MLWorkflow implements WorkflowFactory {
         mtTemplate.setResources(btResources);
 
 
-        Template bp = new Template("build-push");
+        Template bp = new Template("build-push-template");
         Inputs bpInputs = new Inputs();
         bpInputs.addParameter(new Parameter(JAR_PARAM));
-
-        String modelType = conf.getModelType();
-        String buildCmd = String.format("%s %s", BUILD_PUSH_CMD, modelType);
-        String branch;
-
-        if(modelType.equalsIgnoreCase("sentiment")) {
-            buildCmd += BP_SA_PARAMS;
-            branch = "sentiment-analysis";
-        } else {
-            branch = "recommender-engine";
-        }
+        bpInputs.addParameter(new Parameter(BRANCH_PARAM));
+        bpInputs.addParameter(new Parameter(CCMD_PARAM));
 
         Artifact bpJarArtifact = new Artifact(JAR_ART, "/app.jar", s3);
-        Git git = new Git("https://github.com/venci6/demos.git", "model/"+branch);
+        Git git = new Git("https://github.com/venci6/demos.git", "{{inputs.parameters.branch}}");
         Artifact bpGitArtifact = new Artifact("docker-files", "/docker-files", git);
         bpInputs.addArtifact(bpGitArtifact);
         bpInputs.addArtifact(bpJarArtifact);
         bp.setInputs(bpInputs);
 
 
-        Container bpContainer = new Container(IMAGE_DOCKER, Arrays.asList("sh", "-c"), Collections.singletonList(buildCmd));
+        Container bpContainer = new Container(IMAGE_DOCKER, Arrays.asList("sh", "-c"), Collections.singletonList(BUILD_PUSH_CMD));
         Map<String, Secret> userMap = new HashMap<>();
         userMap.put("secretKeyRef", new Secret("docker-credentials", "username"));
         Map<String, Secret> pwMap = new HashMap<>();
@@ -146,6 +174,7 @@ public final class MLWorkflow implements WorkflowFactory {
         Template st = new Template("serving-template");
         Inputs stInputs = new Inputs();
         stInputs.addParameter(new Parameter(KUBE_PARAM));
+        stInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
         st.setInputs(stInputs);
 
         Resource r = new Resource("create", KUBE_MANIFEST);

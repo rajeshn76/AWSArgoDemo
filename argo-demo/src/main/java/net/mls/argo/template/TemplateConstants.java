@@ -27,14 +27,22 @@ public interface TemplateConstants {
             + MT_CMD_ARGS;
 
 
-    String BUILD_PUSH_CMD = "cp app.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
-            " ./wrap.sh {{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} " +
-            "{{workflow.parameters.docker-version}} {{workflow.parameters.model-type}}";
+    String BUILD_PUSH_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.container-cmd}}";
+
+
+
+//            "cp app.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
+//            " ./wrap.sh {{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} " +
+//            "{{workflow.parameters.docker-version}} {{workflow.parameters.model-type}}";
 
     String BUILD_PUSH_STATS_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh " +
             "{{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} {{workflow.parameters.docker-version}}";
 
-    String BP_SA_PARAMS = " {{workflow.parameters.feature-columns}}";
+    String BP_MODEL_PARAMS = "{{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}} {{workflow.parameters.model-type}} ";
+    String BP_MODEL_SA_PARAMS = " {{workflow.parameters.feature-columns}}";
+
+    String BP_PC_PARAMS = "{{workflow.parameters.docker-repo}} performance {{workflow.parameters.docker-version}}";
+    String BP_AB_PARAMS = "{{workflow.parameters.docker-repo}} ab {{workflow.parameters.docker-version}}";
 
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";
@@ -56,6 +64,9 @@ public interface TemplateConstants {
     String DOCKER_IMAGE_PARAM = "docker-image";
     String DOCKER_VERS_PARAM = "docker-version";
     String KUBE_PARAM = "wf-name";
+
+    String BRANCH_PARAM = "branch";
+    String CCMD_PARAM = "container-cmd";
 
     String S3_ACCESS = "AWS_ACCESS_KEY_ID";
     String S3_SECRET = "AWS_SECRET_ACCESS_KEY";
@@ -92,7 +103,7 @@ public interface TemplateConstants {
             "    spec:\n" +
             "      containers:\n" +
             "      - name: {{inputs.parameters.wf-name}}\n" +
-            "        image: {{workflow.parameters.docker-repo}}/{{workflow.parameters.docker-image}}:{{workflow.parameters.docker-version}}\n" +
+            "        image: {{workflow.parameters.docker-repo}}/{{inputs.parameters.docker-image}}:{{workflow.parameters.docker-version}}\n" +
             "        ports:\n" +
             "        - containerPort: 8080";
 

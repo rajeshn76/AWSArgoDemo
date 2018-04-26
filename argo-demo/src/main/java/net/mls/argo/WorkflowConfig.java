@@ -139,6 +139,38 @@ public class WorkflowConfig {
         this.modelType = modelType;
     }
 
+    public Boolean getEnablePerformanceCollector() {
+        return enablePerformanceCollector;
+    }
+
+    public void setEnablePerformanceCollector(Boolean enablePerformanceCollector) {
+        this.enablePerformanceCollector = enablePerformanceCollector;
+    }
+
+    public String getPerformanceJar() {
+        return performanceJar;
+    }
+
+    public void setPerformanceJar(String performanceJar) {
+        this.performanceJar = performanceJar;
+    }
+
+    public Boolean getEnableABTesting() {
+        return enableABTesting;
+    }
+
+    public void setEnableABTesting(Boolean enableABTesting) {
+        this.enableABTesting = enableABTesting;
+    }
+
+    public String getAbJar() {
+        return abJar;
+    }
+
+    public void setAbJar(String abJar) {
+        this.abJar = abJar;
+    }
+
     public WorkflowConfig() {
 
     }
@@ -172,8 +204,13 @@ public class WorkflowConfig {
             wc.s3Endpoint = wc.s3Endpoint != null ? wc.s3Endpoint : this.s3Endpoint;
             wc.s3Bucket = wc.s3Bucket != null ? wc.s3Bucket : this.s3Bucket;
             wc.modelType = wc.modelType != null ? wc.modelType : this.modelType;
-            wc.featureRunner = wc.featureRunner != null ? wc.featureRunner : this.featureRunner;;
-            wc.trainingRunner = wc.trainingRunner != null ? wc.trainingRunner : this.trainingRunner;;
+            wc.featureRunner = wc.featureRunner != null ? wc.featureRunner : this.featureRunner;
+            wc.trainingRunner = wc.trainingRunner != null ? wc.trainingRunner : this.trainingRunner;
+
+            wc.performanceJar = wc.performanceJar != null ? wc.performanceJar : this.performanceJar;
+            wc.abJar = wc.abJar != null ? wc.abJar : this.abJar;
+            wc.enableABTesting = wc.enableABTesting != null ? wc.enableABTesting : this.enableABTesting;
+            wc.enablePerformanceCollector= wc.enablePerformanceCollector != null ? wc.enablePerformanceCollector : this.enablePerformanceCollector;
         }
         return wc;
     }
