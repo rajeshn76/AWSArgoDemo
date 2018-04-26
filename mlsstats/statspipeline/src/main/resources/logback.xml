@@ -1,0 +1,13 @@
+<configuration>
+    <logger name="net.mls" level="DEBUG"/>
+    <logger name="org.apache.beam" level="INFO"/>
+    <logger name="org.apache.kafka" level="WARN"/>
+
+    <root level="WARN">
+        <appender class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} | %thread | %-5level | %logger{1} %msg%n</pattern>
+            </encoder>
+        </appender>
+    </root>
+</configuration>
