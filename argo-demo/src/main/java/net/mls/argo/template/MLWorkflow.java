@@ -67,19 +67,14 @@ public final class MLWorkflow implements WorkflowFactory {
         ft.addStep(buildAndPush);
 
         // ''
+
+        List<Map<String,String>> bpItems = createBPItems(conf);
+
         Map<String, String> modelBPMap = ImmutableMap.of("git-branch", "model/"+branch,
                                                         JAR_PARAM, conf.getModelJar(),
                                                         "cmd", buildModelCmd);
-        Map<String, String> pcBPmap = ImmutableMap.of("git-branch", "basic",
-                                                        JAR_PARAM, conf.getPerformanceJar(),
-                                                        "cmd", BP_PC_PARAMS);
-
-        Map<String, String> abBPmap = ImmutableMap.of("git-branch", "basic",
-                                                        JAR_PARAM, conf.getAbJar(),
-                                                        "cmd", BP_AB_PARAMS);
-
-        buildAndPush.setItems(Arrays.asList(modelBPMap, pcBPmap, abBPmap));
-
+        bpItems.add(0, modelBPMap);
+        buildAndPush.setItems(bpItems);
 
         Step modelServing = new Step("model-serving", "serving-template");
         Arguments msArgs = new Arguments();
@@ -89,11 +84,11 @@ public final class MLWorkflow implements WorkflowFactory {
         modelServing.setArguments(msArgs);
         ft.addStep(modelServing);
 
+        List<Map<String, String>> servingItems = createServingItems(conf);
         Map<String, String> modelServeMap = ImmutableMap.of("image", "model");
-        Map<String, String> pcServeMap = ImmutableMap.of("image", "performance");
-        Map<String, String> abServeMap = ImmutableMap.of("image", "ab");
+        servingItems.add(0, modelServeMap);
 
-        modelServing.setItems(Arrays.asList(modelServeMap, pcServeMap, abServeMap));
+        modelServing.setItems(servingItems);
 
         // Common between FE & MT
         Secret s3AccessSecret = new Secret("s3-credentials", "accessKey");
@@ -216,5 +211,40 @@ public final class MLWorkflow implements WorkflowFactory {
             c = new Container(IMAGE_JAVA, bash, Collections.singletonList(MT_DIRECT_CMD));
         }
         return c;
+    }
+
+    private List<Map<String, String>> createBPItems (WorkflowConfig conf) {
+        List<Map<String,String>> extraItems = new ArrayList<>();
+        if (conf.getEnablePerformanceCollector()) {
+            Map<String, String> pcBPmap = ImmutableMap.of("git-branch", "basic",
+                    JAR_PARAM, conf.getPerformanceJar(),
+                    "cmd", BP_PC_PARAMS);
+            extraItems.add(pcBPmap);
+        }
+
+        if(conf.getEnableABTesting()) {
+            Map<String, String> abBPmap = ImmutableMap.of("git-branch", "basic",
+                    JAR_PARAM, conf.getAbJar(),
+                    "cmd", BP_AB_PARAMS);
+            extraItems.add(abBPmap);
+        }
+
+        return extraItems;
+    }
+
+
+    private List<Map<String, String>> createServingItems (WorkflowConfig conf) {
+        List<Map<String,String>> extraItems = new ArrayList<>();
+        if (conf.getEnablePerformanceCollector()) {
+            Map<String, String> pcServeMap = ImmutableMap.of("image", "performance");
+            extraItems.add(pcServeMap);
+        }
+
+        if(conf.getEnableABTesting()) {
+            Map<String, String> abServeMap = ImmutableMap.of("image", "ab");
+            extraItems.add(abServeMap);
+        }
+
+        return extraItems;
     }
 }
