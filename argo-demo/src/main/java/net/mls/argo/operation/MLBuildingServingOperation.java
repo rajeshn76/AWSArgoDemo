@@ -16,13 +16,13 @@ import java.io.FileWriter;
 import java.util.function.Function;
 
 @Service("mlwfop")
-public class MLWorkflowOperation implements Function<WorkflowConfig, Boolean> {
+public class MLBuildingServingOperation implements Function<WorkflowConfig, Boolean> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MLWorkflowOperation.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MLBuildingServingOperation.class);
 
     public Boolean apply(WorkflowConfig config) {
         try {
-            WorkflowSpec p = new MLWorkflow().create(config);
+            WorkflowSpec p = new MLWorkflow().createBuildingAndServing(config);
             String p_yaml = YAMLGenerator.asYaml(p);
 
             String tmpFileName = RandomStringUtils.randomAlphanumeric(8);

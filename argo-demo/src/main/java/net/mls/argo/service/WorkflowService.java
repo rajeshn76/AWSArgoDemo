@@ -1,7 +1,8 @@
 package net.mls.argo.service;
 
-import net.mls.argo.operation.MLWorkflowOperation;
+import net.mls.argo.operation.MLBuildingServingOperation;
 import net.mls.argo.WorkflowConfig;
+import net.mls.argo.operation.MLServingOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +17,24 @@ public class WorkflowService {
     private WorkflowConfig config;
 
     @Autowired
-    private MLWorkflowOperation mlop;
+    private MLBuildingServingOperation mlop;
+
+    @Autowired
+    private MLServingOperation servingOp;
+
+    @RequestMapping(value = "serving/{modelType}", method = RequestMethod.POST)
+    public void executeServingPipeline(@RequestBody WorkflowConfig wc, @PathVariable String modelType) throws Exception {
+        LOG.info("Creating workflow for "+modelType);
+
+        wc.setModelType(modelType);
+        mlop.apply(config.mergeWith(wc));
+    }
 
 
     @RequestMapping(value = "wf/{modelType}", method = RequestMethod.POST)
     public void executeWF(@RequestBody WorkflowConfig wc, @PathVariable String modelType) throws Exception {
         LOG.info("Creating workflow for "+modelType);
+
         wc.setModelType(modelType);
         mlop.apply(config.mergeWith(wc));
     }
