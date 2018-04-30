@@ -1,4 +1,4 @@
-package net.mls.performance.collector.domain;
+package net.mls.stats.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

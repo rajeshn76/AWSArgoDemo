@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>ab-service</artifactId>
+    <artifactId>stats-service</artifactId>
 
 
     <dependencies>
@@ -125,7 +125,7 @@
                                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <mainClass>net.mls.ABTestingApplication</mainClass>
+                                            <mainClass>net.mls.StatsApplication</mainClass>
                                         </transformer>
                                     </transformers>
                                 </configuration>
@@ -190,7 +190,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>net.mls.ABTestingApplication</mainClass>
+                            <mainClass>net.mls.StatsApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

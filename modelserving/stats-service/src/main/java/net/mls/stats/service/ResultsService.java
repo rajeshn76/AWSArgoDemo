@@ -1,7 +1,7 @@
-package net.mls.performance.collector.service;
+package net.mls.stats.service;
 
-import net.mls.performance.collector.domain.PerformanceResults;
-import net.mls.performance.collector.operation.GetResultsOperation;
+import net.mls.stats.domain.PerformanceResults;
+import net.mls.stats.operation.GetResultsOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

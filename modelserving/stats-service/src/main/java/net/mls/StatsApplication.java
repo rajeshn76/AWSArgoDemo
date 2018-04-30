@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Import;
 @SpringBootApplication
 @ComponentScan({"net.mls.stats", "net.mls.performance"})
 @Import(CassandraConfig.class)
-public class ABTestingApplication {
+public class StatsApplication {
     public static void main(String[] args) {
-        SpringApplication.run(ABTestingApplication.class, args);
+        SpringApplication.run(StatsApplication.class, args);
     }
 
 }

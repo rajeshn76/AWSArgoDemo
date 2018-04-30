@@ -10,9 +10,8 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>model-service</module>
-        <module>performance-collector</module>
         <module>app-domain</module>
-        <module>ab-service</module>
+        <module>stats-service</module>
     </modules>
 
     <parent>

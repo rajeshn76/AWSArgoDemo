@@ -1,11 +1,11 @@
-package net.mls.performance.collector.operation;
+package net.mls.stats.operation;
 
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.mls.performance.domain.ModelCount;
 import net.mls.performance.domain.ModelInfo;
-import net.mls.performance.collector.domain.PerformanceResults;
+import net.mls.stats.domain.PerformanceResults;
 import net.mls.performance.repo.CountRepository;
 
 import net.mls.performance.repo.ModelRepository;
