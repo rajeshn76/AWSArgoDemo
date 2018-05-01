@@ -17,7 +17,7 @@ public final class MLWorkflow implements WorkflowFactory {
 
 
         WorkflowSpec p = new WorkflowSpec(conf.getModelType());
-        Spec spec = new Spec("feature-training");
+        Spec spec = new Spec("building-serving");
         Arguments globalArgs = new Arguments();
         globalArgs.addParameter(new Parameter(FEATURES_PARAM, conf.getFeaturesPath()));
         globalArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
@@ -28,7 +28,7 @@ public final class MLWorkflow implements WorkflowFactory {
         spec.setArguments(globalArgs);
         p.setSpec(spec);
 
-        Template ft = new Template("feature-training");
+        Template ft = new Template("building-serving");
 
         Step featureEngineering = new Step("feature-engineering", "fe-template");
         Arguments feArgs = new Arguments();
@@ -185,16 +185,106 @@ public final class MLWorkflow implements WorkflowFactory {
     }
 
 
+    public WorkflowSpec createBuildingPipeline(WorkflowConfig conf) {
+        String rand = RandomStringUtils.randomAlphanumeric(5).toLowerCase();
+        String dockerVersion = conf.getDockerVersion() + rand;
+
+
+        WorkflowSpec p = new WorkflowSpec(conf.getModelType());
+        Spec spec = new Spec("building-pipeline");
+        Arguments globalArgs = new Arguments();
+        globalArgs.addParameter(new Parameter(FEATURES_PARAM, conf.getFeaturesPath()));
+        globalArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
+        globalArgs.addParameter(new Parameter(MODEL_PATH, conf.getModelPath()));
+        globalArgs.addParameter(new Parameter(MODEL_TYPE_PARAM, conf.getModelType()));
+        spec.setArguments(globalArgs);
+        p.setSpec(spec);
+
+        Template ft = new Template("building-pipeline");
+
+        Step featureEngineering = new Step("feature-engineering", "fe-template");
+        Arguments feArgs = new Arguments();
+        feArgs.addParameter(new Parameter(JAR_PARAM, conf.getFeatureJar()));
+        feArgs.addParameter(new Parameter(INPUT_PARAM, conf.getDataPath()));
+        feArgs.addParameter(new Parameter(FE_JAR_PARAM, conf.getFuncJar()));
+        feArgs.addParameter(new Parameter(FUNC_PARAM, conf.getFuncName()));
+        featureEngineering.setArguments(feArgs);
+        ft.addStep(featureEngineering);
+
+        Step modelTraining = new Step("model-training", "mt-template");
+        Arguments mtArgs = new Arguments();
+        mtArgs.addParameter(new Parameter(JAR_PARAM, conf.getLearningJar()));
+        modelTraining.setArguments(mtArgs);
+        ft.addStep(modelTraining);
+
+
+
+        // Common between FE & MT
+        Secret s3AccessSecret = new Secret("s3-credentials", "accessKey");
+        Secret s3SecSecret = new Secret("s3-credentials", "secretKey");
+        S3 s3 = new S3(conf.getS3Endpoint(), conf.getS3Bucket(), "{{inputs.parameters.jar}}", s3AccessSecret, s3SecSecret);
+        Artifact pipelineArtifact = new Artifact(JAR_ART, "/pipeline.jar", s3);
+
+        Map<String, Secret> s3Access = new HashMap<>();
+        s3Access.put("secretKeyRef", new Secret("s3-credentials", "accessKey"));
+        Map<String, Secret> s3Secret = new HashMap<>();
+        s3Secret.put("secretKeyRef", new Secret("s3-credentials", "secretKey"));
+        List<Env> s3EnvList = Arrays.asList(new Env(S3_ACCESS, s3Access), new Env(S3_SECRET, s3Secret));
+
+        Resources btResources = new Resources(4096L, 0.3f);
+
+
+        Template feTemplate = new Template("fe-template");
+        Inputs feTemplateInputs = new Inputs();
+        feTemplateInputs.addParameter(new Parameter(JAR_PARAM));
+        feTemplateInputs.addParameter(new Parameter(INPUT_PARAM));
+        feTemplateInputs.addParameter(new Parameter(FE_JAR_PARAM));
+        feTemplateInputs.addParameter(new Parameter(FUNC_PARAM));
+
+        feTemplateInputs.addArtifact(pipelineArtifact);
+        S3 s3Func = new S3(conf.getS3Endpoint(), conf.getS3Bucket(), "{{inputs.parameters.feature-engineering-jar}}", s3AccessSecret, s3SecSecret);
+        Artifact funcArtifact = new Artifact(FUNC_ART, "/feature-engineering.jar", s3Func);
+        feTemplateInputs.addArtifact(funcArtifact);
+        feTemplate.setInputs(feTemplateInputs);
+
+        Container feContainer = createFEContainer(conf.getFeatureRunner());
+        feTemplate.setContainer(feContainer);
+        feContainer.setEnv(s3EnvList);
+        feTemplate.setResources(btResources);
+
+
+        Template mtTemplate = new Template("mt-template");
+        Inputs mtTemplateInputs = new Inputs();
+        mtTemplateInputs.addParameter(new Parameter(JAR_PARAM));
+        mtTemplateInputs.addArtifact(pipelineArtifact);
+        mtTemplate.setInputs(mtTemplateInputs);
+
+        Container mtContainer = createMTContainer(conf.getTrainingRunner());
+        mtContainer.setEnv(s3EnvList);
+
+        mtTemplate.setContainer(mtContainer);
+        mtTemplate.setResources(btResources);
+
+
+
+        p.spec.addTemplate(ft);
+        p.spec.addTemplate(feTemplate);
+        p.spec.addTemplate(mtTemplate);
+
+        return p;
+    }
+
+
     public WorkflowSpec createServingPipeline(WorkflowConfig conf) {
         String rand = RandomStringUtils.randomAlphanumeric(5).toLowerCase();
         String dockerVersion = conf.getDockerVersion() + rand;
 
 
         WorkflowSpec p = new WorkflowSpec(conf.getModelType());
-        Spec spec = new Spec("feature-training");
+        Spec spec = new Spec("serving-pipeline");
         Arguments globalArgs = new Arguments();
         globalArgs.addParameter(new Parameter(COLUMNS_PARAM, conf.getColumns()));
-        globalArgs.addParameter(new Parameter(MODEL_PATH, conf.getModelPath()));
+//        globalArgs.addParameter(new Parameter(MODEL_PATH, conf.getModelPath()));
         globalArgs.addParameter(new Parameter(MODEL_TYPE_PARAM, conf.getModelType()));
         globalArgs.addParameter(new Parameter(DOCKER_REPO_PARAM, conf.getDockerRepo()));
         globalArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, dockerVersion));
@@ -204,7 +294,7 @@ public final class MLWorkflow implements WorkflowFactory {
         Template ft = new Template("serving-pipeline");
 
         String modelType = conf.getModelType();
-        String buildModelCmd = BP_MODEL_PARAMS;
+        String buildModelCmd = BP_MODEL_PARAMS_2;
         String branch;
 
         if(modelType.equalsIgnoreCase("sentiment")) {
@@ -226,10 +316,17 @@ public final class MLWorkflow implements WorkflowFactory {
 
         List<Map<String,String>> bpItems = createBPItems(conf);
 
-        Map<String, String> modelBPMap = ImmutableMap.of("git-branch", "model/"+branch,
-                JAR_PARAM, conf.getModelJar(),
-                "cmd", buildModelCmd);
-        bpItems.add(0, modelBPMap);
+        String[] models = conf.getModelPath().split(",");
+        for(String modelPath: models) {
+
+            Map<String, String> modelBPMap = ImmutableMap.of("git-branch", "model/"+branch,
+                    JAR_PARAM, conf.getModelJar(),
+                    "cmd", modelPath + " " + buildModelCmd);
+
+            bpItems.add(0, modelBPMap);
+
+        }
+
         buildAndPush.setItems(bpItems);
 
         Step modelServing = new Step("model-serving", "serving-template");
@@ -340,18 +437,18 @@ public final class MLWorkflow implements WorkflowFactory {
 
     private List<Map<String, String>> createBPItems (WorkflowConfig conf) {
         List<Map<String,String>> extraItems = new ArrayList<>();
-        if (conf.getEnablePerformanceCollector()) {
-            Map<String, String> pcBPmap = ImmutableMap.of("git-branch", "basic",
-                    JAR_PARAM, conf.getPerformanceJar(),
-                    "cmd", BP_PC_PARAMS);
-            extraItems.add(pcBPmap);
+        if (conf.getEnableStats()) {
+            Map<String, String> statsMap = ImmutableMap.of("git-branch", "basic",
+                    JAR_PARAM, conf.getStatsJar(),
+                    "cmd", BP_STATS_PARAMS);
+            extraItems.add(statsMap);
         }
 
-        if(conf.getEnableABTesting()) {
-            Map<String, String> abBPmap = ImmutableMap.of("git-branch", "basic",
-                    JAR_PARAM, conf.getAbJar(),
-                    "cmd", BP_AB_PARAMS);
-            extraItems.add(abBPmap);
+        if (conf.getEnableProcessor()) {
+            Map<String, String> processorMap = ImmutableMap.of("git-branch", "basic",
+                    JAR_PARAM, conf.getProcessorJar(),
+                    "cmd", BP_PROCESS_PARAMS);
+            extraItems.add(processorMap);
         }
 
         return extraItems;
@@ -360,16 +457,15 @@ public final class MLWorkflow implements WorkflowFactory {
 
     private List<Map<String, String>> createServingItems (WorkflowConfig conf) {
         List<Map<String,String>> extraItems = new ArrayList<>();
-        if (conf.getEnablePerformanceCollector()) {
-            Map<String, String> pcServeMap = ImmutableMap.of("image", "performance");
+        if (conf.getEnableStats()) {
+            Map<String, String> pcServeMap = ImmutableMap.of("image", "stats");
             extraItems.add(pcServeMap);
         }
 
-        if(conf.getEnableABTesting()) {
-            Map<String, String> abServeMap = ImmutableMap.of("image", "ab");
-            extraItems.add(abServeMap);
+        if (conf.getEnableProcessor()) {
+            Map<String, String> processorServeMap = ImmutableMap.of("image", "processor");
+            extraItems.add(processorServeMap);
         }
-
         return extraItems;
     }
 }

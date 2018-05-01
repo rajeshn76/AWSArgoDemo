@@ -14,12 +14,12 @@ modelTraining:
   runner: "DirectRunner"
 
 modelServing:
-  modelJar: "jars/v-rec/model-serving.jar"
+  modelJar: "jars/v-serving/v3/model-service.jar"
   kubeWfName: "model-sa-endpoint-"
-  enablePerformanceCollector: true
-  performanceJar: "jars/v-serving/performance-collector.jar"
-  enableABTesting: true
-  abJar: "jars/v-serving/ab-service.jar"
+  enableStats: true
+  statsJar: "jars/v-serving/v3/stats-service.jar"
+  enableProcessor: true
+  processorJar: "jars/v-serving/v3/processor-service.jar"
 
 buildPush:
   dockerRepo: "pqchat"
@@ -29,3 +29,4 @@ buildPush:
 s3Endpoint: "s3.amazonaws.com"
 s3Bucket: "argo-flow"
 modelType: "sentiment"
+pipelineType: "serving" # building , building-serving
