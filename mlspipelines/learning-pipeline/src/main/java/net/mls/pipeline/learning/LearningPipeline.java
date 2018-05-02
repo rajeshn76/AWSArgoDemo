@@ -24,7 +24,7 @@ public class LearningPipeline {
     private static final Logger LOG = LoggerFactory.getLogger(LearningPipeline.class);
     private static Config conf = ConfigFactory.load();
     private static String bucket;
-
+    private static Integer numIterations;
     public static void main(String[] args) {
         MLSPipelinesOptions options = PipelineOptionsFactory.fromArgs(args)
                 .withValidation()
@@ -43,6 +43,9 @@ public class LearningPipeline {
                 .orElseGet(() -> conf.getString("columns.input"));
         String modelType = Optional.ofNullable(options.getModelType())
                 .orElseGet(() -> conf.getString("modelType"));
+
+        numIterations = Optional.ofNullable(options.getNumIterations())
+                .orElseGet(() -> conf.getInt("numIterations"));
 
         String inputPath = "s3://" + bucket + "/" + inputFile;
         LOG.info("Reading data model from {}", inputPath);
@@ -64,7 +67,8 @@ public class LearningPipeline {
             return sa.transform();
         } else if (str.equalsIgnoreCase("recommender")) {
             String outputPath = "s3a://" + bucket + "/" + output;
-            RecommenderEngine re = new RecommenderEngine(outputPath, conf.getString("s3Config.accessKey"), conf.getString("s3Config.secretKey"));
+
+            RecommenderEngine re = new RecommenderEngine(outputPath, conf.getString("s3Config.accessKey"), conf.getString("s3Config.secretKey"),numIterations);
             return re.transform();
         } else {
             throw new UnsupportedOperationException("No model for " + str);
