@@ -12,6 +12,7 @@
         <module>model-service</module>
         <module>app-domain</module>
         <module>stats-service</module>
+        <module>processor-service</module>
     </modules>
 
     <parent>
