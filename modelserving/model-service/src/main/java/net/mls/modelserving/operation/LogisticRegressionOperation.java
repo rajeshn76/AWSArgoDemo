@@ -1,6 +1,7 @@
 package net.mls.modelserving.operation;
 
 
+import net.mls.modelserving.SentimentPrediction;
 import net.mls.modelserving.util.S3Client;
 import net.mls.modelserving.util.ZipFile;
 import org.apache.spark.ml.PipelineModel;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @Service("lreg")
-public class LogisticRegressionOperation implements Function<String, String> {
+public class LogisticRegressionOperation implements Function<String, SentimentPrediction> {
 
     Logger LOG = LoggerFactory.getLogger(LogisticRegressionOperation.class);
 
@@ -64,7 +65,7 @@ public class LogisticRegressionOperation implements Function<String, String> {
             tmpZipFile.delete();
         }
     }
-    public String apply(String review) {
+    public SentimentPrediction apply(String review) {
         List<Row> data = Collections.singletonList(RowFactory.create(review, false, "0", 0.0));
 
         String[] header = columns.split(",");
@@ -81,7 +82,8 @@ public class LogisticRegressionOperation implements Function<String, String> {
 
         Row testDataVec = ((Row[]) prediction.collect())[0];
         double predictionResult = (double) testDataVec.get(testDataVec.size()-1);
-        return "Sentiment is " + (predictionResult == 1.0 ? "positive" : "negative");
+
+        return new SentimentPrediction(review, (predictionResult == 1.0 ? "positive" : "negative"));
 
 
     }
