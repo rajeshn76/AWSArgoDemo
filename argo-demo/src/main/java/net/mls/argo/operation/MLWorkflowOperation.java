@@ -3,6 +3,7 @@ package net.mls.argo.operation;
 import net.mls.argo.WorkflowConfig;
 import net.mls.argo.template.MLWorkflow;
 import net.mls.argo.template.WorkflowSpec;
+import net.mls.argo.util.PipelineType;
 import net.mls.argo.util.ShellCommandExecutor;
 import net.mls.argo.util.YAMLGenerator;
 import org.apache.commons.lang.RandomStringUtils;
@@ -22,14 +23,7 @@ public class MLWorkflowOperation implements Function<WorkflowConfig, Boolean> {
 
     public Boolean apply(WorkflowConfig config) {
         try {
-            WorkflowSpec p;
-            if(config.getPipelineType().equalsIgnoreCase("building")) {
-                p = new MLWorkflow().createBuildingPipeline(config);
-            } else if(config.getPipelineType().equalsIgnoreCase("serving")) {
-                p = new MLWorkflow().createServingPipeline(config);
-            } else { //building-serving
-                p = new MLWorkflow().createBuildingAndServing(config);
-            }
+            WorkflowSpec p = new MLWorkflow().create(PipelineType.fromString(config.getPipelineType()), config);
 
             String p_yaml = YAMLGenerator.asYaml(p);
 

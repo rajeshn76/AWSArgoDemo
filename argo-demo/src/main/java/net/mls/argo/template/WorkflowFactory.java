@@ -1,8 +1,8 @@
 package net.mls.argo.template;
 
 import net.mls.argo.WorkflowConfig;
+import net.mls.argo.util.PipelineType;
 
 public interface WorkflowFactory {
-    WorkflowSpec createBuildingAndServing(WorkflowConfig config);
-    WorkflowSpec createServingPipeline(WorkflowConfig config);
+    WorkflowSpec create(PipelineType pipelineType, WorkflowConfig config);
 }
