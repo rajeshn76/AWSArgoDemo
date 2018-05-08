@@ -22,6 +22,9 @@ public interface MLSPipelinesOptions extends S3Options {
     String getModelType();
     void setModelType(String value);
 
+    Integer getNumIterations();
+    void setNumIterations(Integer value);
+
 
 
 }

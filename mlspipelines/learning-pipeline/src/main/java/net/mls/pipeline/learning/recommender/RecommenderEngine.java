@@ -28,11 +28,13 @@ public class RecommenderEngine implements Serializable {
     private String outputPath;
     private String accessKey;
     private String secretKey;
+    private Integer numIterations;
 
-    public RecommenderEngine(String outputPath, String accessKey, String secretKey) {
+    public RecommenderEngine(String outputPath, String accessKey, String secretKey, Integer numIterations) {
         this.outputPath = outputPath;
         this.accessKey = accessKey;
         this.secretKey = secretKey;
+        this.numIterations = numIterations;
     }
     private static int numPartitions = 20;
 
@@ -111,7 +113,7 @@ public class RecommenderEngine implements Serializable {
 
             Integer rank = 8;
             List<Double> lambdas = Arrays.asList(0.1, 10.0);
-            Integer numIter = 10;
+//            Integer numIter = 10;
 
 
             Optional<MatrixFactorizationModel> bestModel = Optional.empty();
@@ -124,7 +126,7 @@ public class RecommenderEngine implements Serializable {
 
             for(Double lambda: lambdas) {
 
-                MatrixFactorizationModel model = ALS.train(training, rank, numIter, lambda);
+                MatrixFactorizationModel model = ALS.train(training, rank, numIterations, lambda);
                 Double validationRmse = computeRmse(model, validation);
 
                 if(validationRmse < bestValidationRmse) {
@@ -132,7 +134,7 @@ public class RecommenderEngine implements Serializable {
                     bestValidationRmse = validationRmse;
                     bestRank = rank;
                     bestLambda = lambda;
-                    bestNumIter = numIter;
+                    bestNumIter = numIterations;
                 }
             }
 

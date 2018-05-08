@@ -1,9 +1,9 @@
 package net.mls.argo.operation;
 
+import net.mls.argo.WorkflowConfig;
 import net.mls.argo.template.MLWorkflow;
 import net.mls.argo.template.WorkflowSpec;
 import net.mls.argo.util.ShellCommandExecutor;
-import net.mls.argo.WorkflowConfig;
 import net.mls.argo.util.YAMLGenerator;
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
@@ -15,14 +15,22 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.function.Function;
 
-@Service("mlwfop")
-public class MLBuildingServingOperation implements Function<WorkflowConfig, Boolean> {
+@Service("servingop")
+public class MLWorkflowOperation implements Function<WorkflowConfig, Boolean> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MLBuildingServingOperation.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MLWorkflowOperation.class);
 
     public Boolean apply(WorkflowConfig config) {
         try {
-            WorkflowSpec p = new MLWorkflow().createBuildingAndServing(config);
+            WorkflowSpec p;
+            if(config.getPipelineType().equalsIgnoreCase("building")) {
+                p = new MLWorkflow().createBuildingPipeline(config);
+            } else if(config.getPipelineType().equalsIgnoreCase("serving")) {
+                p = new MLWorkflow().createServingPipeline(config);
+            } else { //building-serving
+                p = new MLWorkflow().createBuildingAndServing(config);
+            }
+
             String p_yaml = YAMLGenerator.asYaml(p);
 
             String tmpFileName = RandomStringUtils.randomAlphanumeric(8);

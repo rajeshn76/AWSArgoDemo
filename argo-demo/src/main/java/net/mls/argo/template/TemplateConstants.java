@@ -38,11 +38,15 @@ public interface TemplateConstants {
     String BUILD_PUSH_STATS_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh " +
             "{{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} {{workflow.parameters.docker-version}}";
 
-    String BP_MODEL_PARAMS = "{{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}} {{workflow.parameters.model-type}} ";
+    String BP_MODEL_PARAMS = "{{workflow.parameters.model-path}} " +
+            "{{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}} {{workflow.parameters.model-type}} ";
+
+    String BP_MODEL_PARAMS_2 =
+            "{{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}} {{workflow.parameters.model-type}} ";
     String BP_MODEL_SA_PARAMS = " {{workflow.parameters.feature-columns}}";
 
-    String BP_PC_PARAMS = "{{workflow.parameters.docker-repo}} performance {{workflow.parameters.docker-version}}";
-    String BP_AB_PARAMS = "{{workflow.parameters.docker-repo}} ab {{workflow.parameters.docker-version}}";
+    String BP_STATS_PARAMS = "{{workflow.parameters.docker-repo}} stats {{workflow.parameters.docker-version}}";
+    String BP_PROCESS_PARAMS = "{{workflow.parameters.docker-repo}} processor {{workflow.parameters.docker-version}}";
 
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";

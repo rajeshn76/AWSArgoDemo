@@ -38,14 +38,15 @@ public class WorkflowConfig {
     private String modelJar;
     @Value("${modelServing.kubeWfName}")
     private String kubeWfName;
-    @Value("${modelServing.enablePerformanceCollector}")
-    private Boolean enablePerformanceCollector;
-    @Value("${modelServing.performanceJar}")
-    private String performanceJar;
-    @Value("${modelServing.enableABTesting}")
-    private Boolean enableABTesting;
-    @Value("${modelServing.abJar}")
-    private String abJar;
+
+    @Value("${modelServing.enableStats}")
+    private Boolean enableStats;
+    @Value("${modelServing.statsJar}")
+    private String statsJar;
+    @Value("${modelServing.enableProcessor}")
+    private Boolean enableProcessor;
+    @Value("${modelServing.processorJar}")
+    private String processorJar;
 
     @Value("${buildPush.dockerRepo}")
     private String dockerRepo;
@@ -62,6 +63,9 @@ public class WorkflowConfig {
 
     @Value("${modelType}")
     private String modelType;
+
+    @Value("${pipelineType}")
+    private String pipelineType;
 
     public String getFeatureJar() {
         return featureJar;
@@ -139,38 +143,45 @@ public class WorkflowConfig {
         this.modelType = modelType;
     }
 
-    public Boolean getEnablePerformanceCollector() {
-        return enablePerformanceCollector;
+    public Boolean getEnableStats() {
+        return enableStats;
     }
 
-    public void setEnablePerformanceCollector(Boolean enablePerformanceCollector) {
-        this.enablePerformanceCollector = enablePerformanceCollector;
+    public void setEnableStats(Boolean enableStats) {
+        this.enableStats = enableStats;
     }
 
-    public String getPerformanceJar() {
-        return performanceJar;
+    public String getStatsJar() {
+        return statsJar;
     }
 
-    public void setPerformanceJar(String performanceJar) {
-        this.performanceJar = performanceJar;
+    public void setStatsJar(String statsJar) {
+        this.statsJar = statsJar;
     }
 
-    public Boolean getEnableABTesting() {
-        return enableABTesting;
+    public Boolean getEnableProcessor() {
+        return enableProcessor;
     }
 
-    public void setEnableABTesting(Boolean enableABTesting) {
-        this.enableABTesting = enableABTesting;
+    public void setEnableProcessor(Boolean enableProcessor) {
+        this.enableProcessor = enableProcessor;
     }
 
-    public String getAbJar() {
-        return abJar;
+    public String getProcessorJar() {
+        return processorJar;
     }
 
-    public void setAbJar(String abJar) {
-        this.abJar = abJar;
+    public void setProcessorJar(String processorJar) {
+        this.processorJar = processorJar;
     }
 
+    public String getPipelineType() {
+        return pipelineType;
+    }
+
+    public void setPipelineType(String pipelineType) {
+        this.pipelineType = pipelineType;
+    }
     public WorkflowConfig() {
 
     }
@@ -207,10 +218,12 @@ public class WorkflowConfig {
             wc.featureRunner = wc.featureRunner != null ? wc.featureRunner : this.featureRunner;
             wc.trainingRunner = wc.trainingRunner != null ? wc.trainingRunner : this.trainingRunner;
 
-            wc.performanceJar = wc.performanceJar != null ? wc.performanceJar : this.performanceJar;
-            wc.abJar = wc.abJar != null ? wc.abJar : this.abJar;
-            wc.enableABTesting = wc.enableABTesting != null ? wc.enableABTesting : this.enableABTesting;
-            wc.enablePerformanceCollector= wc.enablePerformanceCollector != null ? wc.enablePerformanceCollector : this.enablePerformanceCollector;
+            wc.statsJar = wc.statsJar != null ? wc.statsJar : this.statsJar;
+            wc.enableStats= wc.enableStats != null ? wc.enableStats : this.enableStats;
+            wc.processorJar = wc.processorJar != null ? wc.processorJar : this.processorJar;
+            wc.enableProcessor= wc.enableProcessor != null ? wc.enableProcessor : this.enableProcessor;
+
+            wc.pipelineType= wc.pipelineType != null ? wc.pipelineType : this.pipelineType;
         }
         return wc;
     }
