@@ -29,25 +29,13 @@ public interface TemplateConstants {
 
     String BUILD_PUSH_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh {{inputs.parameters.container-cmd}}";
 
-
-
-//            "cp app.jar docker-files/model-serving.jar ; cd /docker-files ; chmod +x wrap.sh ;" +
-//            " ./wrap.sh {{workflow.parameters.model-path}} {{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} " +
-//            "{{workflow.parameters.docker-version}} {{workflow.parameters.model-type}}";
-
-    String BUILD_PUSH_STATS_CMD = "cp app.jar docker-files/app.jar ; cd /docker-files ; chmod +x wrap.sh ; ./wrap.sh " +
-            "{{workflow.parameters.docker-repo}} {{workflow.parameters.docker-image}} {{workflow.parameters.docker-version}}";
-
-    String BP_MODEL_PARAMS = "{{workflow.parameters.model-path}} " +
-            "{{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}} {{workflow.parameters.model-type}} ";
-
-    String BP_MODEL_PARAMS_2 =
-            "{{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}} {{workflow.parameters.model-type}} ";
     String BP_MODEL_SA_PARAMS = " {{workflow.parameters.feature-columns}}";
 
     String BP_STATS_PARAMS = "{{workflow.parameters.docker-repo}} stats {{workflow.parameters.docker-version}}";
     String BP_PROCESS_PARAMS = "{{workflow.parameters.docker-repo}} processor {{workflow.parameters.docker-version}}";
 
+
+    String WF_DOCKER_VERS = "{{workflow.parameters.docker-version}}";
     String IMAGE_DOCKER = "docker:17.10";
     String IMAGE_JAVA = "java:8";
     String IMAGE_FLINK = "flink:1.4.0";
@@ -107,7 +95,7 @@ public interface TemplateConstants {
             "    spec:\n" +
             "      containers:\n" +
             "      - name: {{inputs.parameters.wf-name}}\n" +
-            "        image: {{workflow.parameters.docker-repo}}/{{inputs.parameters.docker-image}}:{{workflow.parameters.docker-version}}\n" +
+            "        image: {{workflow.parameters.docker-repo}}/{{inputs.parameters.docker-image}}:{{inputs.parameters.docker-version}}\n" +
             "        ports:\n" +
             "        - containerPort: 8080";
 

@@ -7,6 +7,7 @@ import net.mls.argo.util.PipelineType;
 import org.apache.commons.lang.RandomStringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static net.mls.argo.template.TemplateConstants.*;
 
@@ -69,7 +70,7 @@ public final class MLWorkflow implements WorkflowFactory {
         List<Map<String, String>> servingItems = createServingItems();
         modelServing.setItems(servingItems);
 
-        // Common between FE & MT
+
         List<Env> s3EnvList = getS3EnvList();
         Resources btResources = new Resources(4096L, 0.3f);
 
@@ -209,9 +210,9 @@ public final class MLWorkflow implements WorkflowFactory {
     private Step getModelServingStep() {
         Step modelServing= new Step("model-serving", "serving-template");
         Arguments msArgs = new Arguments();
-        msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()
-                + rand+"-{{item.image}}"));
+        msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()+ "-{{item.image}}-{{item.version}}"));
         msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, "{{item.image}}"));
+        msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, "{{item.vers}}"));
         modelServing.setArguments(msArgs);
         return modelServing;
     }
@@ -290,6 +291,7 @@ public final class MLWorkflow implements WorkflowFactory {
         Inputs stInputs = new Inputs();
         stInputs.addParameter(new Parameter(KUBE_PARAM));
         stInputs.addParameter(new Parameter(DOCKER_IMAGE_PARAM));
+        stInputs.addParameter(new Parameter(DOCKER_VERS_PARAM));
         st.setInputs(stInputs);
 
         Resource r = new Resource("create", KUBE_MANIFEST);
@@ -315,27 +317,24 @@ public final class MLWorkflow implements WorkflowFactory {
     private List<Map<String, String>> createBPItems () {
         List<Map<String,String>> bpItems = new ArrayList<>();
 
-
         String modelType = conf.getModelType();
-        String buildModelCmd = BP_MODEL_PARAMS_2;
-        String branch;
 
-        if(modelType.equalsIgnoreCase("sentiment")) {
-            buildModelCmd += BP_MODEL_SA_PARAMS;
-            branch = "sentiment-analysis";
-        } else {
-            branch = "recommender-engine";
-        }
+        String columns = modelType.equalsIgnoreCase("sentiment") ? BP_MODEL_SA_PARAMS : "";
+        final String branch = "model/" + modelType;
 
-
+        // Deploy multiple models
         String[] models = conf.getModelPath().split(",");
-        for(String modelPath: models) {
+        int version = 97;
 
-            Map<String, String> modelBPMap = ImmutableMap.of("git-branch", "model/"+branch,
+        for(String modelPath : models) {
+            char letter = (char) version;
+            String cmd = String.format("%s {{workflow.parameters.docker-repo}} model {{workflow.parameters.docker-version}}%c {{workflow.parameters.model-type}} %s", modelPath, letter, columns);
+
+            Map<String, String> modelBuild = ImmutableMap.of("git-branch", branch,
                     JAR_PARAM, conf.getModelJar(),
-                    "cmd", modelPath + " " + buildModelCmd);
-
-            bpItems.add(0, modelBPMap);
+                    "cmd", cmd);
+            bpItems.add(modelBuild);
+            version++;
         }
 
 
@@ -360,17 +359,26 @@ public final class MLWorkflow implements WorkflowFactory {
     private List<Map<String, String>> createServingItems() {
         List<Map<String,String>> servingItems = new ArrayList<>();
 
-        Map<String, String> modelServeMap = ImmutableMap.of("image", "model");
-        servingItems.add(0, modelServeMap);
+        String[] models = conf.getModelPath().split(",");
+        int version = 97;
+
+        for(String model : models) {
+            Map<String, String> modelServeMap = ImmutableMap.of("image", "model",
+                    "version", WF_DOCKER_VERS + (char)version);
+            servingItems.add(modelServeMap);
+            version++;
+        }
 
 
         if (conf.getEnableStats()) {
-            Map<String, String> pcServeMap = ImmutableMap.of("image", "stats");
+            Map<String, String> pcServeMap = ImmutableMap.of("image", "stats",
+                    "version", WF_DOCKER_VERS);
             servingItems.add(pcServeMap);
         }
 
         if (conf.getEnableProcessor()) {
-            Map<String, String> processorServeMap = ImmutableMap.of("image", "processor");
+            Map<String, String> processorServeMap = ImmutableMap.of("image", "processor",
+                    "version", WF_DOCKER_VERS);
             servingItems.add(processorServeMap);
         }
         return servingItems;
