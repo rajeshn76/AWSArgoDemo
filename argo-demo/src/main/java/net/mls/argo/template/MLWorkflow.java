@@ -7,7 +7,6 @@ import net.mls.argo.util.PipelineType;
 import org.apache.commons.lang.RandomStringUtils;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.mls.argo.template.TemplateConstants.*;
 
@@ -212,7 +211,7 @@ public final class MLWorkflow implements WorkflowFactory {
         Arguments msArgs = new Arguments();
         msArgs.addParameter(new Parameter(KUBE_PARAM, conf.getKubeWfName()+ "-{{item.image}}-{{item.version}}"));
         msArgs.addParameter(new Parameter(DOCKER_IMAGE_PARAM, "{{item.image}}"));
-        msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, "{{item.vers}}"));
+        msArgs.addParameter(new Parameter(DOCKER_VERS_PARAM, "{{item.version}}"));
         modelServing.setArguments(msArgs);
         return modelServing;
     }
